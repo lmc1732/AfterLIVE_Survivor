@@ -1,0 +1,60 @@
+# Prerequisites
+*.d
+# Visual Studio Temporary file
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+*.sln.docstates
+*.VC.db
+*.suo
+*.VC.opendb
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+# Build output directory
+Debug/
+Release/
+x64/
+Win32/
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.exp
+
+# Executables
+*.exe
+*.out
+*.app
+# Qt Creator Temporary file
+CMakeLists.txt.user*
+*.creator.user*
+*.config
+*.includes
+*.files
