@@ -68,7 +68,7 @@ void HomingBullet::triggerExplosion()
     GameManager* gm = qobject_cast<GameManager*>(m_gameManager);
     if (!gm) return;
 
-    // Record killed enemies (to determine whether to play fireworks
+    // Record killed enemies (to determine whether to play fireworks)
     Enemy* killedEnemy = nullptr;
 
     // Deal massive damage to all enemies within the explosion radius
@@ -87,6 +87,9 @@ void HomingBullet::triggerExplosion()
                 if (damage < 5) damage = 5;  // Min damage: 5
                 int newHp = oldHp - damage;
                 e->setHp(qMax(0, newHp));
+
+                // Key: Trigger enemy skills (Spore Mist, Stun, etc.)
+                e->onHit(gm->player(), gm);
 
                 // If this enemy is killed, record it
                 if (oldHp > 0 && newHp <= 0) {

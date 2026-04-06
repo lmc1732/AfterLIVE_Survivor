@@ -4,5 +4,8 @@
     <qresource prefix="/">
         <file>qml/main.qml</file>
         <file>qml/Player.qml</file>
+        <file>qml/CharacterSelect.qml</file>
+        <file>qml/GameMain.qml</file>
+        <file>qml/MainMenu.qml</file>
     </qresource>
 </RCC>

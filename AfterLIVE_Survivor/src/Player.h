@@ -22,6 +22,7 @@ class Player : public QObject
         Q_PROPERTY(bool hasHealOnKill READ hasHealOnKill WRITE setHasHealOnKill NOTIFY hasHealOnKillChanged)
         Q_PROPERTY(bool hasBurnEffect READ hasBurnEffect WRITE setHasBurnEffect NOTIFY hasBurnEffectChanged)
         Q_PROPERTY(int expToNextLevel READ expToNextLevel NOTIFY expChanged)
+        Q_PROPERTY(QStringList activeEffects READ activeEffects NOTIFY activeEffectsChanged)
 
 public:
     explicit Player(QObject* parent = nullptr);
@@ -59,7 +60,7 @@ public:
     void addExp(int amount);
     Weapon* weapon() const { return m_weapon; }
 
-    void takeDamage(int damage);
+    void takeDamage(int damage, bool ignoreArmor = false);
     bool isDead() const { return m_hp <= 0; }
     void updateInvincibility();
 
@@ -74,6 +75,15 @@ public:
     void setHasHealOnKill(bool enable);
     bool hasBurnEffect() const { return m_hasBurnEffect; }
     void setHasBurnEffect(bool enable);
+
+    void addEffect(const QString& effect, qreal duration);
+    void updateEffects(qreal deltaTime);
+    QStringList activeEffects() const { return m_activeEffects; }
+    void removeEffect(const QString& effect);
+    bool hasEffect(const QString& effect) const;
+
+    void setRooted(bool rooted);
+    bool isRooted() const { return m_isRooted; }
 
 signals:
     void maxHpChanged();
@@ -92,6 +102,7 @@ signals:
     void hasSlowEffectChanged();
     void hasHealOnKillChanged();
     void hasBurnEffectChanged();
+    void activeEffectsChanged();
 
 private:
     int expRequiredForLevel(int level) const;
@@ -110,6 +121,8 @@ private:
     Weapon* m_weapon = nullptr;
     int m_invincibilityTimer = 0;
     int m_invincibilityDuration = 60;
+    bool m_isRooted = false;
+    int m_savedSpeed = 0;
 
     // Special Effect
     double m_expMultiplier = 1.0;
@@ -117,4 +130,7 @@ private:
     bool m_hasSlowEffect = false;
     bool m_hasHealOnKill = false;
     bool m_hasBurnEffect = false;
+
+    QStringList m_activeEffects;
+    QList<qreal> m_effectTimers;
 };

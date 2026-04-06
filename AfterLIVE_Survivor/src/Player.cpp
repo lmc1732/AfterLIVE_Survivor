@@ -16,10 +16,10 @@ void Player::setCharacterType(CharacterType type)
     }
 
     if (type == CharacterA) {
-        m_maxHp = 150;
-        m_hp = 150;
+        m_maxHp = 100;
+        m_hp = 100;
         m_hpRegen = 2;
-        m_armor = 5;
+        m_armor = 0;
         m_moveSpeed = 280;
         m_power = 12;
         m_area = 60;
@@ -27,10 +27,10 @@ void Player::setCharacterType(CharacterType type)
         m_weapon = new Carrot(this);
     }
     else {
-        m_maxHp = 80;
-        m_hp = 80;
+        m_maxHp = 60;
+        m_hp = 60;
         m_hpRegen = 1;
-        m_armor = 0;
+        m_armor = 5;
         m_moveSpeed = 320;
         m_power = 8;
         m_area = 40;
@@ -125,7 +125,6 @@ void Player::setExpMultiplier(double mult)
     if (qFuzzyCompare(m_expMultiplier, mult)) return;
     m_expMultiplier = mult;
     emit expMultiplierChanged();
-    qDebug() << "Exp multiplier changed to:" << mult;
 }
 
 void Player::setDamageMultiplier(double mult)
@@ -191,16 +190,17 @@ void Player::addExp(int amount)
     }
 }
 
-void Player::takeDamage(int damage)
+void Player::takeDamage(int damage, bool ignoreArmor)
 {
     if (m_invincibilityTimer > 0) return;
 
-    int actualDamage = damage - m_armor;
-    if (actualDamage < 1) actualDamage = 1;
-
+    int actualDamage = damage;
+    if (!ignoreArmor) {
+        actualDamage = damage - m_armor;
+        if (actualDamage < 1) actualDamage = 1;
+    }
     int newHp = m_hp - actualDamage;
     setHp(qMax(0, newHp));
-
     m_invincibilityTimer = m_invincibilityDuration;
     qDebug() << "Player took" << actualDamage << "damage, HP:" << m_hp;
 }
@@ -209,5 +209,61 @@ void Player::updateInvincibility()
 {
     if (m_invincibilityTimer > 0) {
         m_invincibilityTimer--;
+    }
+}
+
+void Player::addEffect(const QString& effect, qreal duration)
+{
+    int index = m_activeEffects.indexOf(effect);
+    if (index != -1) {
+        m_effectTimers[index] = duration;
+    }
+    else {
+        m_activeEffects.append(effect);
+        m_effectTimers.append(duration);
+    }
+    emit activeEffectsChanged();
+}
+
+void Player::updateEffects(qreal deltaTime)
+{
+    bool changed = false;
+    for (int i = m_effectTimers.size() - 1; i >= 0; --i) {
+        m_effectTimers[i] -= deltaTime;
+        if (m_effectTimers[i] <= 0) {
+            m_activeEffects.removeAt(i);
+            m_effectTimers.removeAt(i);
+            changed = true;
+        }
+    }
+    if (changed) emit activeEffectsChanged();
+}
+
+void Player::removeEffect(const QString& effect)
+{
+    int index = m_activeEffects.indexOf(effect);
+    if (index != -1) {
+        m_activeEffects.removeAt(index);
+        m_effectTimers.removeAt(index);
+        emit activeEffectsChanged();
+    }
+}
+
+bool Player::hasEffect(const QString& effect) const
+{
+    return m_activeEffects.contains(effect);
+}
+
+void Player::setRooted(bool rooted)
+{
+    if (rooted == m_isRooted) return;
+    if (rooted) {
+        m_savedSpeed = m_moveSpeed;
+        setMoveSpeed(0);
+        m_isRooted = true;
+    }
+    else {
+        setMoveSpeed(m_savedSpeed);
+        m_isRooted = false;
     }
 }

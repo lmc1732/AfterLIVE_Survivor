@@ -5,8 +5,8 @@
 
 Bone::Bone(QObject* parent) : Weapon(parent)
 {
-    setDamage(45);        // Base damage per bullet greatly increased to 45
-    setAttackSpeed(2.5);  // Attack speed slightly reduced to 2.5 to balance high single-shot damage
+    setDamage(45);        // 单颗子弹基础伤害大幅提升到 45
+    setAttackSpeed(2.5);  // 攻速略微降低到 2.5，平衡单发高伤害
 }
 
 void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
@@ -16,7 +16,7 @@ void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
     bullet->setX(playerPos.x());
     bullet->setY(playerPos.y());
 
-    // Calculate direction
+    // 计算方向
     qreal dx = targetPos.x() - playerPos.x();
     qreal dy = targetPos.y() - playerPos.y();
     qreal len = std::hypot(dx, dy);
@@ -28,14 +28,14 @@ void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
         dx = 0; dy = 1;
     }
     bullet->setVelocity(dx, dy);
-    bullet->setSpeed(500);           // Projectile speed increased to 500
+    bullet->setSpeed(500);           // 子弹速度提升到 500
     bullet->setDamage(damage());
 
-    // Explosion radius increased to 120, explosion damage increased to 45
+    // 爆炸半径增大到 120，爆炸伤害提升到 45
     bullet->setExplosionRadius(120);
     bullet->setExplosionDamage(45);
 
-    // Pass GameManager pointer
+    // 传递 GameManager 指针
     QObject* gm = this;
     while (gm && !qobject_cast<GameManager*>(gm)) {
         gm = gm->parent();

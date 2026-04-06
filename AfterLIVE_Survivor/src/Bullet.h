@@ -7,6 +7,8 @@ class Bullet : public QObject
         Q_PROPERTY(qreal x READ x WRITE setX NOTIFY xChanged)
         Q_PROPERTY(qreal y READ y WRITE setY NOTIFY yChanged)
         Q_PROPERTY(int damage READ damage WRITE setDamage NOTIFY damageChanged)
+        Q_PROPERTY(qreal velX READ velX)
+        Q_PROPERTY(qreal velY READ velY)
 
 public:
     explicit Bullet(QObject* parent = nullptr);
@@ -33,6 +35,15 @@ public:
     bool hasHit() const { return m_hasHit; }
     void setHit() { m_hasHit = true; m_deleted = true; deleteLater(); }
 
+    void setMaxLifeTime(qreal life) { m_maxLifeTime = life; }
+
+    void setIgnoreArmor(bool ignore) { m_ignoreArmor = ignore; }
+    bool ignoreArmor() const { return m_ignoreArmor; }
+    void setIsRebounded(bool rebounded) { m_isRebounded = rebounded; }
+    bool isRebounded() const { return m_isRebounded; }
+    void setIsBossBullet(bool isBoss) { m_isBossBullet = isBoss; }
+    bool isBossBullet() const { return m_isBossBullet; }
+
 signals:
     void xChanged();
     void yChanged();
@@ -49,4 +60,9 @@ protected:
     qreal m_maxLifeTime = 3.0;
     bool m_deleted = false;
     bool m_hasHit = false;
+
+private:
+    bool m_ignoreArmor = false;
+    bool m_isRebounded = false;
+    bool m_isBossBullet = false;
 };

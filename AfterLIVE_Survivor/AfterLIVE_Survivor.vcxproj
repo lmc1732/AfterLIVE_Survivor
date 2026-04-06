@@ -103,13 +103,19 @@
   <ItemGroup>
     <ClCompile Include="src\Bullet.cpp" />
     <ClCompile Include="src\Enemy.cpp" />
+    <ClCompile Include="src\EnemyFactory.cpp" />
     <ClCompile Include="src\ExpBall.cpp" />
     <ClCompile Include="src\Explosion.cpp" />
     <ClCompile Include="src\GameManager.cpp" />
     <ClCompile Include="src\HomingBullet.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Player.cpp" />
+    <ClCompile Include="src\RootProjectile.cpp" />
+    <ClCompile Include="src\RootSkill.cpp" />
+    <ClCompile Include="src\Skill.cpp" />
     <ClCompile Include="src\SpecialUpgrade.cpp" />
+    <ClCompile Include="src\SporeMistEffect.cpp" />
+    <ClCompile Include="src\SporeMistSkill.cpp" />
     <ClCompile Include="src\StatUpgrade.cpp" />
     <ClCompile Include="src\UpgradeItem.cpp" />
     <ClCompile Include="src\Weapon.cpp" />
@@ -117,7 +123,10 @@
     <ClCompile Include="src\Weapon_Carrot.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="qml\CharacterSelect.qml" />
+    <None Include="qml\GameMain.qml" />
     <None Include="qml\main.qml" />
+    <None Include="qml\MainMenu.qml" />
     <None Include="qml\Player.qml" />
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +153,15 @@
     <QtMoc Include="src\SpecialUpgrade.h" />
     <QtMoc Include="src\StatUpgrade.h" />
     <QtMoc Include="src\UpgradeItem.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\EnemyFactory.h" />
+    <ClInclude Include="src\EnemyType.h" />
+    <QtMoc Include="src\SporeMistEffect.h" />
+    <QtMoc Include="src\SporeMistSkill.h" />
+    <QtMoc Include="src\RootProjectile.h" />
+    <QtMoc Include="src\RootSkill.h" />
+    <QtMoc Include="src\Skill.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

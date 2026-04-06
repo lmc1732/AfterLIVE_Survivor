@@ -1,10 +1,15 @@
-#include "GameManager.h"
+﻿#include "GameManager.h"
 #include "Weapon.h"
 #include "HomingBullet.h"
 #include "StatUpgrade.h"
 #include "SpecialUpgrade.h"
+#include "EnemyFactory.h"
+#include "SporeMistEffect.h"
+#include "SporeMistSkill.h"
+#include "RootProjectile.h"
 #include <QRandomGenerator>
 #include <QPointF>
+#include <QTimer>
 #include <QDebug>
 #include <cmath>
 
@@ -17,13 +22,20 @@ GameManager::GameManager(QObject* parent)
     m_playerY = 300;
 
     connect(m_player, &Player::levelUpRequested, this, &GameManager::levelUp);
+
+    m_spawnTimer = new QTimer(this);
+    connect(m_spawnTimer, &QTimer::timeout, this, &GameManager::spawnEnemy);
+    m_spawnTimer->start(static_cast<int>(m_spawnInterval * 1000));
 }
 
 QList<QObject*> GameManager::enemies() const
 {
+    qDebug() << "enemies() called, m_enemies.size() =" << m_enemies.size();
     QList<QObject*> list;
-    for (Enemy* e : m_enemies)
+    for (Enemy* e : m_enemies) {
         list.append(e);
+    }
+    qDebug() << "returning list size =" << list.size();
     return list;
 }
 
@@ -59,35 +71,139 @@ void GameManager::addExplosion(Explosion* explosion)
 
 void GameManager::addExpBall(ExpBall* ball)
 {
+    if (m_expBalls.size() > 50) {
+        delete ball;
+        return;
+    }
     m_expBalls.append(ball);
     emit expBallsChanged();
 }
 
-void GameManager::selectCharacter(int type)
+void GameManager::addBullet(Bullet* bullet)
 {
-    if (m_player) {
-        delete m_player;
-        m_player = nullptr;
+    if (!bullet) return;
+    if (m_bullets.size() > 200) {
+        delete bullet;
+        return;
+    }
+    m_bullets.append(bullet);
+    emit bulletsChanged();
+    qDebug() << "Bullet added, total:" << m_bullets.size();
+}
+
+void GameManager::addSporeMistEffect(SporeMistEffect* effect)
+{
+    m_sporeMistEffects.append(effect);
+    emit sporeMistEffectsChanged();
+}
+
+QList<QObject*> GameManager::sporeMistEffects() const
+{
+    QList<QObject*> list;
+    for (SporeMistEffect* e : m_sporeMistEffects)
+        list.append(e);
+    return list;
+}
+
+void GameManager::addEnemyDirect(Enemy* enemy)
+{
+    if (!enemy) return;
+    m_enemies.append(enemy);
+    emit enemiesChanged();
+    connect(enemy, &Enemy::died, this, &GameManager::onEnemyDied);
+    if (enemy->type() == EnemyType::RaccoonBoss) {
+        enemy->startBossLogic(this);
+    }
+}
+
+void GameManager::setPlayerPosition(qreal x, qreal y)
+{
+    m_playerX = x;
+    m_playerY = y;
+}
+
+void GameManager::spawnEnemy()
+{
+    if (m_gameOver || m_gamePaused) return;
+    if (m_bossSpawned && m_enemies.size() > 15) return;
+
+    EnemyType type;
+    if (m_gameTime < WAVE1_END) {
+        type = EnemyType::MossBall;
+    }
+    else if (m_gameTime < WAVE2_END) {
+        int r = QRandomGenerator::global()->bounded(2);
+        type = (r == 0) ? EnemyType::MossBall : EnemyType::BranchGunner;
+    }
+    else if (m_gameTime < WAVE3_END) {
+        int r = QRandomGenerator::global()->bounded(3);
+        if (r == 0) type = EnemyType::MossBall;
+        else if (r == 1) type = EnemyType::BranchGunner;
+        else type = EnemyType::BerryBomb;
+    }
+    else {
+        int r = QRandomGenerator::global()->bounded(4);
+        if (r == 0) type = EnemyType::MossBall;
+        else if (r == 1) type = EnemyType::BranchGunner;
+        else if (r == 2) type = EnemyType::BerryBomb;
+        else type = EnemyType::BarkShield;
     }
 
-    m_player = new Player(this);
-    Player::CharacterType charType = (type == 0) ? Player::CharacterA : Player::CharacterB;
-    m_player->setCharacterType(charType);
+    Enemy* enemy = EnemyFactory::createEnemy(type, this);
+    qreal x = QRandomGenerator::global()->bounded(0, 800);
+    qreal y = QRandomGenerator::global()->bounded(0, 600);
+    enemy->setX(x);
+    enemy->setY(y);
 
-    connect(m_player, &Player::levelUpRequested, this, &GameManager::levelUp);
+    connect(enemy, &Enemy::died, this, [this, enemy]() {
+        if (m_player->hasHealOnKill()) {
+            int healAmount = 5;
+            m_player->setHp(qMin(m_player->hp() + healAmount, m_player->maxHp()));
+        }
+        ExpBall* ball = new ExpBall(this);
+        ball->setX(enemy->x());
+        ball->setY(enemy->y());
+        ball->setExpValue(enemy->expReward());
+        addExpBall(ball);
+        });
 
-    qDebug() << "Selected character type:" << (type == 0 ? "A" : "B");
+    m_enemies.append(enemy);
+    emit enemiesChanged();
 }
 
 void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
 {
+    // If game is over or paused, do not perform any updates
+    if (m_gameOver || m_gamePaused) {
+        return;
+    }
+
     m_playerX = playerX;
     m_playerY = playerY;
 
-    // Update game timer (only when game is active)
     if (!m_gameOver && !m_gamePaused) {
         m_gameTime += deltaTime;
         emit gameTimeChanged();
+    }
+
+    if (!m_bossSpawned && !m_gameOver && !m_gamePaused && m_gameTime >= WAVE4_END) {
+        m_bossSpawned = true;
+        m_boss = EnemyFactory::createEnemy(EnemyType::RaccoonBoss, this);
+        m_boss->setX(400);
+        m_boss->setY(200);
+
+        connect(m_boss, &Enemy::died, this, [this]() {
+            if (!m_gameWinHandled) {
+                m_gameWinHandled = true;
+                qDebug() << "Boss defeated! Victory!";
+                m_gameOver = true;
+                emit gameWon();
+                emit gameOverChanged();
+            }
+            });
+
+        addEnemyDirect(m_boss);
+        qDebug() << "Boss spawned at time:" << m_gameTime;
     }
 
     if (m_gameOver || m_gamePaused) {
@@ -102,6 +218,8 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
     QPointF playerPos(playerX, playerY);
 
     m_player->updateInvincibility();
+    m_player->updateEffects(cappedDeltaTime);
+
 
     if (m_player->hp() < m_player->maxHp() && m_player->hpRegen() > 0) {
         m_regenTimer += cappedDeltaTime;
@@ -122,8 +240,23 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
     }
 
     for (Enemy* enemy : m_enemies) {
-        enemy->updateStatusEffects(cappedDeltaTime);
-        enemy->update(playerPos, cappedDeltaTime);
+        if (enemy && !enemy->isDead()) {
+            enemy->updateStatusEffects(cappedDeltaTime);
+            enemy->update(playerPos, cappedDeltaTime);
+            enemy->updateActiveSkill(cappedDeltaTime, this);
+        }
+    }
+
+    // Active skill cooldown management (placed after enemy movement updates)
+    for (Enemy* enemy : m_enemies) {
+        if (enemy->isDead()) continue;
+        static QMap<Enemy*, qreal> skillTimers;
+        qreal& timer = skillTimers[enemy];
+        timer += cappedDeltaTime;
+        if (timer >= 4.0 && enemy->getSkill()) {
+            timer = 0;
+            enemy->getSkill()->activate(enemy, nullptr, this);
+        }
     }
 
     for (Explosion* exp : m_explosions) {
@@ -132,11 +265,40 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
 
     checkCollisions();
 
-    m_spawnTimer += cappedDeltaTime;
-    while (m_spawnTimer >= m_spawnInterval) {
-        m_spawnTimer -= m_spawnInterval;
-        spawnEnemy();
+    // Update fog and detect vulnerable areas
+    for (int i = m_sporeMistEffects.size() - 1; i >= 0; --i) {
+        SporeMistEffect* mist = m_sporeMistEffects[i];
+        mist->update(cappedDeltaTime);
+        if (mist->isExpired()) {
+            delete mist;
+            m_sporeMistEffects.removeAt(i);
+        }
     }
+    emit sporeMistEffectsChanged();
+
+    // Check if player is inside any fog (for vulnerability)
+    bool inDamageMist = false;
+    for (SporeMistEffect* mist : m_sporeMistEffects) {
+        qreal dx = m_playerX - mist->x();
+        qreal dy = m_playerY - mist->y();
+        qreal dist = std::hypot(dx, dy);
+        if (dist < mist->radius()) {
+            inDamageMist = true;
+            break;
+        }
+    }
+
+    // Update member variables
+    m_playerInDamageMist = inDamageMist;
+
+    // Control left panel display effect (add/remove on enter/leave)
+    if (inDamageMist && !m_prevInDamageMist) {
+        m_player->addEffect("🍄 Spore Mist (20% Vulnerability)", 3.0);
+    }
+    else if (!inDamageMist && m_prevInDamageMist) {
+        m_player->removeEffect("🍄 Spore Mist (20% Vulnerability)");
+    }
+    m_prevInDamageMist = inDamageMist;
 
     cleanupDeadObjects();
 
@@ -148,75 +310,122 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
     }
 }
 
-void GameManager::restartGame()
+void GameManager::spawnEnemyAt(EnemyType type, qreal x, qreal y)
 {
+    Enemy* enemy = EnemyFactory::createEnemy(type, this);
+    if (!enemy) return;
+    enemy->setX(x);
+    enemy->setY(y);
+    addEnemyDirect(enemy);
+}
+
+void GameManager::resetGameData()
+{
+    // Stop timer
+    if (m_spawnTimer) {
+        m_spawnTimer->stop();
+        m_spawnTimer->deleteLater();
+        m_spawnTimer = nullptr;
+    }
+
     // Clear all game objects
     for (Enemy* enemy : m_enemies) {
+        if (enemy->type() == EnemyType::RaccoonBoss) {
+            enemy->stopBossLogic();
+        }
+        enemy->disconnect();
         delete enemy;
     }
     m_enemies.clear();
-
-    for (Bullet* bullet : m_bullets) {
-        delete bullet;
-    }
+    for (Bullet* bullet : m_bullets) delete bullet;
     m_bullets.clear();
-
-    for (Explosion* exp : m_explosions) {
-        delete exp;
-    }
+    for (Explosion* exp : m_explosions) delete exp;
     m_explosions.clear();
-
-    for (ExpBall* ball : m_expBalls) {
-        delete ball;
-    }
+    for (ExpBall* ball : m_expBalls) delete ball;
     m_expBalls.clear();
-
-    for (UpgradeItem* item : m_currentUpgrades) {
-        delete item;
-    }
+    for (UpgradeItem* item : m_currentUpgrades) delete item;
     m_currentUpgrades.clear();
-
-    // Recreate the player
-    if (m_player) {
-        delete m_player;
-        m_player = nullptr;
-    }
-
-    m_player = new Player(this);
-    m_player->setCharacterType(Player::CharacterA);
-
-    // Reconnect upgrade signals
-    connect(m_player, &Player::levelUpRequested, this, &GameManager::levelUp);
+    for (SporeMistEffect* effect : m_sporeMistEffects) delete effect;
+    m_sporeMistEffects.clear();
+    m_playerInDamageMist = false;
+    m_prevInDamageMist = false;
+    m_skillTimers.clear();
 
     // Reset game state
+    m_gameTime = 0;
+    m_bossSpawned = false;
+    m_boss = nullptr;
+    m_gameWinHandled = false;
     m_gameOver = false;
     m_gamePaused = false;
     m_isWaitingForUpgrade = false;
-    m_spawnTimer = 0;
     m_regenTimer = 0;
     m_playerX = 400;
     m_playerY = 300;
-    m_gameTime = 0;  // Reset timer
-    emit gameTimeChanged();
 
+    // Emit list changed signal
     emit enemiesChanged();
     emit bulletsChanged();
     emit explosionsChanged();
     emit expBallsChanged();
     emit gameOverChanged();
     emit gamePausedChanged();
+    emit gameTimeChanged();
 
-    qDebug() << "Game restarted!";
+    qDebug() << "Game data reset.";
+}
+
+void GameManager::restartGame()
+{
+    resetGameData();  // Reuse reset logic
+    qDebug() << "Game restarted (data only, timer not started).";
+}
+
+void GameManager::selectCharacter(int type)
+{
+    resetGameData();  // Reset data, stop and delete old timer
+
+    if (m_player) {
+        delete m_player;
+        m_player = nullptr;
+    }
+    m_player = new Player(this);
+    Player::CharacterType charType = (type == 0) ? Player::CharacterA : Player::CharacterB;
+    m_player->setCharacterType(charType);
+    connect(m_player, &Player::levelUpRequested, this, &GameManager::levelUp);
+    emit playerChanged();
+
+    // Start timer (start game)
+    m_spawnTimer = new QTimer(this);
+    connect(m_spawnTimer, &QTimer::timeout, this, &GameManager::spawnEnemy);
+    m_spawnTimer->start(static_cast<int>(m_spawnInterval * 1000));
+
+    qDebug() << "Character selected and game started:" << (type == 0 ? "A" : "B");
+}
+
+void GameManager::setIsGamePaused(bool paused)
+{
+    if (m_gamePaused == paused) return;
+    m_gamePaused = paused;
+    emit gamePausedChanged();
+}
+
+void GameManager::setSpawnTimerEnabled(bool enabled)
+{
+    if (!m_spawnTimer) return;
+    if (enabled) {
+        m_spawnTimer->start();
+    }
+    else {
+        m_spawnTimer->stop();
+    }
 }
 
 void GameManager::levelUp()
 {
     if (m_isWaitingForUpgrade || m_gameOver) return;
 
-    // Clear old options
-    for (auto item : m_currentUpgrades) {
-        delete item;
-    }
+    for (auto item : m_currentUpgrades) delete item;
     m_currentUpgrades.clear();
 
     m_currentUpgrades = generateRandomUpgrades();
@@ -240,11 +449,8 @@ void GameManager::selectUpgrade(int index)
 
     m_currentUpgrades[index]->apply(m_player);
 
-    // Remove unselected items
     for (int i = 0; i < m_currentUpgrades.size(); ++i) {
-        if (i != index) {
-            delete m_currentUpgrades[i];
-        }
+        if (i != index) delete m_currentUpgrades[i];
     }
     m_currentUpgrades.clear();
     m_isWaitingForUpgrade = false;
@@ -257,7 +463,6 @@ QList<UpgradeItem*> GameManager::generateRandomUpgrades()
     QList<UpgradeItem*> options;
     QVector<UpgradeItem*> pool;
 
-    // Base Stat Item
     pool.append(new StatUpgrade(StatUpgrade::MaxHp, 20, "Rice", "qrc:/images/placeholder.png", this));
     pool.append(new StatUpgrade(StatUpgrade::MaxHp, 20, "Soft Blanket", "qrc:/images/placeholder.png", this));
     pool.append(new StatUpgrade(StatUpgrade::HpRegen, 2, "Dubai Chocolate", "qrc:/images/placeholder.png", this));
@@ -273,7 +478,6 @@ QList<UpgradeItem*> GameManager::generateRandomUpgrades()
     pool.append(new StatUpgrade(StatUpgrade::AttackSpeed, 5, "Wind Chime", "qrc:/images/placeholder.png", this));
     pool.append(new StatUpgrade(StatUpgrade::AttackSpeed, 5, "Rattle", "qrc:/images/placeholder.png", this));
 
-    // Special Effect Item
     pool.append(new SpecialUpgrade(SpecialUpgrade::BraveSword, "Hero Sword", "qrc:/images/placeholder.png", this));
     pool.append(new SpecialUpgrade(SpecialUpgrade::Shield, "Glow Shield", "qrc:/images/placeholder.png", this));
     pool.append(new SpecialUpgrade(SpecialUpgrade::SilenceBow, "Silence Bow", "qrc:/images/placeholder.png", this));
@@ -281,7 +485,6 @@ QList<UpgradeItem*> GameManager::generateRandomUpgrades()
     pool.append(new SpecialUpgrade(SpecialUpgrade::WishBranch, "Wishing Branch", "qrc:/images/placeholder.png", this));
     pool.append(new SpecialUpgrade(SpecialUpgrade::WarmHammer, "Warm Flame Hammer", "qrc:/images/placeholder.png", this));
 
-    // Randomly select 3 distinct items
     QList<int> indices;
     while (indices.size() < 3 && indices.size() < pool.size()) {
         int idx = QRandomGenerator::global()->bounded(pool.size());
@@ -297,6 +500,7 @@ void GameManager::checkCollisions()
 {
     checkBulletEnemyCollision();
     checkPlayerEnemyCollision();
+    checkPlayerRootCollision();
     checkPlayerExpBallCollision();
 }
 
@@ -316,29 +520,84 @@ void GameManager::checkBulletEnemyCollision()
 
             qreal enemyX = enemy->x();
             qreal enemyY = enemy->y();
-            qreal enemyRadius = 15.0;
+            qreal enemyRadius = enemy->size() / 2.0;
 
             qreal dx = bulletX - enemyX;
             qreal dy = bulletY - enemyY;
             qreal dist = std::hypot(dx, dy);
 
             if (dist < bulletRadius + enemyRadius) {
-                int finalDamage = static_cast<int>(bullet->damage() * m_player->damageMultiplier());
-                enemy->takeDamage(finalDamage);
-                bullet->setHit();
+                // Bark Shield blocks and bullet is not the rebound source
+                if (enemy->type() == EnemyType::BarkShield && enemy->isBlocking() && !bullet->isRebounded()) {
+                    // Create rebound bullet
+                    Bullet* rebounded = new Bullet(this);
+                    rebounded->setX(enemyX);
+                    rebounded->setY(enemyY);
 
-                if (m_player->hasBurnEffect()) {
-                    enemy->applyBurn(10, 3.0);
+                    //Basic rebound direction (opposite of incoming direction)
+                    qreal vx = -bullet->velX();
+                    qreal vy = -bullet->velY();
+
+                    //Light homing: Calculate direction from rebound point to player
+                    QPointF dirToPlayer(m_playerX - enemyX, m_playerY - enemyY);
+                    qreal len = std::hypot(dirToPlayer.x(), dirToPlayer.y());
+                    if (len > 0.01) {
+                        dirToPlayer /= len;
+                        // Mix rebound direction with homing direction (50% each)
+                        vx = (vx + dirToPlayer.x()) * 0.5;
+                        vy = (vy + dirToPlayer.y()) * 0.5;
+                        // Normalize
+                        len = std::hypot(vx, vy);
+                        if (len > 0.01) {
+                            vx /= len;
+                            vy /= len;
+                        }
+                    }
+
+                    //Random offset of ±10 degrees (adds unpredictability)
+                    qreal angle = std::atan2(vy, vx);
+                    angle += (QRandomGenerator::global()->bounded(20) - 10) * M_PI / 180.0;
+                    vx = std::cos(angle);
+                    vy = std::sin(angle);
+
+                    rebounded->setVelocity(vx, vy);
+                    rebounded->setSpeed(bullet->speed() * 1.5);   // Increase speed by 50%
+                    rebounded->setDamage(bullet->damage() * 1.2);        // Increase damage by 20%
+                    rebounded->setIgnoreArmor(true);
+                    rebounded->setIsRebounded(true);
+                    addBullet(rebounded);
+                    bullet->setHit();
+                    break;
                 }
-                break;
+                else {
+
+                    int finalDamage = static_cast<int>(bullet->damage() * m_player->damageMultiplier());
+                    enemy->takeDamage(finalDamage);
+                    // Call onHit to trigger skills
+                    enemy->onHit(m_player, this);
+                    bullet->setHit();
+                    if (m_player->hasBurnEffect()) {
+                        enemy->applyBurn(10, 3.0);
+                    }
+                    if (enemy->type() == EnemyType::BerryBomb && !enemy->isDead()) {
+                        enemy->explode(this);
+                        bullet->setHit();
+                        break; // Bullet disappears after explosion and stops further detection
+                    }
+                    break;
+                }
             }
         }
     }
 }
-
 void GameManager::checkPlayerEnemyCollision()
 {
     if (m_player->isDead() || m_gameOver) return;
+
+    // Invincibility frame check
+    static qreal lastDamageTime = 0;
+    if (m_gameTime - lastDamageTime < 0.5) return;
+    lastDamageTime = m_gameTime;
 
     qreal playerX = m_playerX;
     qreal playerY = m_playerY;
@@ -349,16 +608,57 @@ void GameManager::checkPlayerEnemyCollision()
 
         qreal enemyX = enemy->x();
         qreal enemyY = enemy->y();
-        qreal enemyRadius = 15.0;
+        qreal enemyRadius = enemy->size() / 2.0;
 
         qreal dx = playerX - enemyX;
         qreal dy = playerY - enemyY;
         qreal dist = std::hypot(dx, dy);
 
         if (dist < playerRadius + enemyRadius) {
-            // Player takes damage, no damage to enemies
-            m_player->takeDamage(enemy->damage());
-            qDebug() << "Player hit! HP:" << m_player->hp();
+            // Player takes no collision damage while Bark Shield is blocking
+            if (enemy->type() == EnemyType::BarkShield && enemy->isBlocking()) {
+                break;
+            }
+            // Berry Bomb: Trigger explosion (does not deal normal damage)
+            if (enemy->type() == EnemyType::BerryBomb) {
+                enemy->explode(this);
+                break; // After explosion, enemy disappears and this collision ends
+            }
+            // Other enemies (including small berries) deal normal damage
+            else {
+                m_player->takeDamage(enemy->damage());
+                qDebug() << "Player hit by enemy type" << (int)enemy->type() << "HP:" << m_player->hp();
+                break; // Process only one enemy per collision
+            }
+        }
+    }
+}
+
+void GameManager::checkPlayerRootCollision()
+{
+    for (int i = m_bullets.size() - 1; i >= 0; --i) {
+        Bullet* bullet = m_bullets[i];
+        RootProjectile* rootProj = qobject_cast<RootProjectile*>(bullet);
+        if (!rootProj) continue;
+
+        qreal dx = m_playerX - rootProj->x();
+        qreal dy = m_playerY - rootProj->y();
+        qreal dist = std::hypot(dx, dy);
+        if (dist < 40.0) {
+            if (!m_player->isRooted()) {
+                m_player->setRooted(true);
+                // Add status display
+                m_player->addEffect("🌿 Stun", rootProj->rootDuration());
+                // Deal bullet damage
+                m_player->takeDamage(rootProj->damage());
+                QTimer::singleShot(static_cast<int>(rootProj->rootDuration() * 1000), this, [this]() {
+                    m_player->setRooted(false);
+                    });
+            }
+            delete rootProj;
+            m_bullets.removeAt(i);
+            qDebug() << "Player rooted!";
+            break;
         }
     }
 }
@@ -387,53 +687,26 @@ void GameManager::checkPlayerExpBallCollision()
             m_player->addExp(ball->expValue());
             delete ball;
             m_expBalls.removeAt(i);
-            qDebug() << "ExpBall collected!";
         }
     }
     emit expBallsChanged();
 }
 
-void GameManager::spawnEnemy()
-{
-    Enemy* enemy = new Enemy(this);
-    qreal x = QRandomGenerator::global()->bounded(0, 800);
-    qreal y = QRandomGenerator::global()->bounded(0, 600);
-    enemy->setX(x);
-    enemy->setY(y);
-    enemy->setHp(30);
-    enemy->setDamage(10);
-    enemy->setExpReward(10);
-
-    connect(enemy, &Enemy::died, this, [this, enemy]() {
-        if (m_player->hasHealOnKill()) {
-            int healAmount = 5;
-            m_player->setHp(qMin(m_player->hp() + healAmount, m_player->maxHp()));
-            qDebug() << "Healed by LoveLute:" << healAmount;
-        }
-
-        ExpBall* ball = new ExpBall(this);
-        ball->setX(enemy->x());
-        ball->setY(enemy->y());
-        ball->setExpValue(enemy->expReward());
-        addExpBall(ball);
-        });
-
-    m_enemies.append(enemy);
-    emit enemiesChanged();
-}
-
 void GameManager::cleanupDeadObjects()
 {
-    // Remove dead enemies
     for (int i = m_enemies.size() - 1; i >= 0; --i) {
-        if (m_enemies[i]->isDead()) {
-            delete m_enemies[i];
+        Enemy* enemy = m_enemies[i];
+        if (enemy->isDead()) {
+            if (enemy->type() == EnemyType::RaccoonBoss) {
+                enemy->stopBossLogic();   // Stop recursive chain
+            }
+            enemy->disconnect();
+            delete enemy;
             m_enemies.removeAt(i);
         }
     }
     emit enemiesChanged();
 
-    // Clear bullets
     for (int i = m_bullets.size() - 1; i >= 0; --i) {
         if (m_bullets[i]->isBeingDeleted()) {
             delete m_bullets[i];
@@ -442,7 +715,6 @@ void GameManager::cleanupDeadObjects()
     }
     emit bulletsChanged();
 
-    // Clear explosions
     for (int i = m_explosions.size() - 1; i >= 0; --i) {
         if (m_explosions[i]->isFinished()) {
             delete m_explosions[i];
@@ -450,4 +722,21 @@ void GameManager::cleanupDeadObjects()
         }
     }
     emit explosionsChanged();
+}
+
+void GameManager::onEnemyDied(Enemy* enemy)
+{
+    if (!enemy) return;
+
+    // Drop experience orb
+    ExpBall* ball = new ExpBall(this);
+    ball->setX(enemy->x());
+    ball->setY(enemy->y());
+    ball->setExpValue(enemy->expReward());
+    addExpBall(ball);
+}
+
+void GameManager::refreshEnemies()
+{
+    emit enemiesChanged();
 }

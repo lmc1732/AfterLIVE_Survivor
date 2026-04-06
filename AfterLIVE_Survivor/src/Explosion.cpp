@@ -110,6 +110,7 @@ void Explosion::generateParticles()
         // Random direction, low speed, small area
         qreal angle = QRandomGenerator::global()->bounded(0, 360) * M_PI / 180.0;
         qreal speed = QRandomGenerator::global()->bounded(30, 80);  // Lower speed, small spread
+        p->setVx(std::cos(angle) * speed);
         p->setVy(std::sin(angle) * speed);
         p->setX(m_centerX);
         p->setY(m_centerY);
