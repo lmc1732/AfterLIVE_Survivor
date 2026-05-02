@@ -9,6 +9,10 @@ class Bullet : public QObject
         Q_PROPERTY(int damage READ damage WRITE setDamage NOTIFY damageChanged)
         Q_PROPERTY(qreal velX READ velX)
         Q_PROPERTY(qreal velY READ velY)
+        Q_PROPERTY(bool isPlayerBullet READ isPlayerBullet WRITE setIsPlayerBullet NOTIFY isPlayerBulletChanged)
+        Q_PROPERTY(qreal angle READ angle WRITE setAngle NOTIFY angleChanged)
+        Q_PROPERTY(bool isRebounded READ isRebounded WRITE setIsRebounded NOTIFY isReboundedChanged)
+        Q_PROPERTY(bool isBossBullet READ isBossBullet WRITE setIsBossBullet NOTIFY isBossBulletChanged)
 
 public:
     explicit Bullet(QObject* parent = nullptr);
@@ -26,6 +30,11 @@ public:
     qreal velY() const { return m_velY; }
     void setVelocity(qreal vx, qreal vy);
 
+    bool isPlayerBullet() const { return m_isPlayerBullet; }
+    void setIsPlayerBullet(bool value);
+    qreal angle() const { return m_angle; }
+    void setAngle(qreal angle);
+
     qreal speed() const { return m_speed; }
     void setSpeed(qreal speed);
 
@@ -41,13 +50,21 @@ public:
     bool ignoreArmor() const { return m_ignoreArmor; }
     void setIsRebounded(bool rebounded) { m_isRebounded = rebounded; }
     bool isRebounded() const { return m_isRebounded; }
-    void setIsBossBullet(bool isBoss) { m_isBossBullet = isBoss; }
+    void setIsBossBullet(bool isBoss) {
+        if (m_isBossBullet == isBoss) return;
+        m_isBossBullet = isBoss;
+        emit isBossBulletChanged();
+    }
     bool isBossBullet() const { return m_isBossBullet; }
 
 signals:
     void xChanged();
     void yChanged();
     void damageChanged();
+    void isPlayerBulletChanged();
+    void angleChanged();
+    void isReboundedChanged();
+    void isBossBulletChanged();
 
 protected:
     qreal m_x = 0;
@@ -65,4 +82,6 @@ private:
     bool m_ignoreArmor = false;
     bool m_isRebounded = false;
     bool m_isBossBullet = false;
+    bool m_isPlayerBullet = false;
+    qreal m_angle = 0.0;
 };

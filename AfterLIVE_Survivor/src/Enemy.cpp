@@ -14,13 +14,12 @@
 #include <QPropertyAnimation>
 #include <cmath>
 
-// ========== Constructor & Destructor ==========
 Enemy::Enemy(QObject* parent) : QObject(parent)
 {
-    // Original Initialization
     m_blockTimer = nullptr;
     m_cooldownTimer = nullptr;
     m_initialDirectionSet = false;
+    m_branchShootTimer = nullptr;
 }
 
 Enemy::~Enemy()
@@ -76,6 +75,25 @@ void Enemy::setType(EnemyType type)
     if (m_type == type) return;
     m_type = type;
     emit typeChanged();
+
+    // Stop all shooting timers
+    if (m_branchShootTimer && m_branchShootTimer->isActive())
+        m_branchShootTimer->stop();
+
+    if (m_type == EnemyType::BranchGunner) {
+        if (!m_branchShootTimer) {
+            m_branchShootTimer = new QTimer(this);
+            connect(m_branchShootTimer, &QTimer::timeout, this, &Enemy::onBranchGunnerShoot);
+        }
+        m_branchShootTimer->start(2000);
+        qDebug() << "BranchGunner shooting timer started";
+    }
+}
+void Enemy::setFacingRight(bool right)
+{
+    if (m_facingRight == right) return;
+    m_facingRight = right;
+    emit facingRightChanged();
 }
 void Enemy::setDamage(int damage) { m_damage = damage; }
 void Enemy::setExpReward(int exp) { m_expReward = exp; }
@@ -127,19 +145,49 @@ void Enemy::update(const QPointF& playerPos, qreal deltaTime)
         // Move
         setX(m_x + m_dirX * m_speed * deltaTime);
         setY(m_y + m_dirY * m_speed * deltaTime);
-        // Boundary bounce (assuming window size 800x600)
-        if (m_x < 0 || m_x > 800) {
-            m_dirX = -m_dirX;
-            setX(qBound(0.0, m_x, 800.0));
+
+        bool bounced = false;
+        // Boundary detection and handling
+        if (m_x < 0) {
+            m_x = 0;
+            bounced = true;
         }
-        if (m_y < 0 || m_y > 600) {
-            m_dirY = -m_dirY;
-            setY(qBound(0.0, m_y, 600.0));
+        else if (m_x > 800 - m_size) {
+            m_x = 800 - m_size;
+            bounced = true;
+        }
+        if (m_y < 0) {
+            m_y = 0;
+            bounced = true;
+        }
+        else if (m_y > 600 - m_size) {
+            m_y = 600 - m_size;
+            bounced = true;
+        }
+
+        if (bounced && m_gameManager) {
+            // Recalculate direction: point to player's current position
+            QPointF toPlayer(m_gameManager->playerX() - m_x, m_gameManager->playerY() - m_y);
+            qreal len = std::hypot(toPlayer.x(), toPlayer.y());
+            if (len > 0.01) {
+                toPlayer /= len;
+                m_dirX = toPlayer.x();
+                m_dirY = toPlayer.y();
+            }
+            else {
+                // Recalculate direction: point to player's current position. If player is at the same position, choose a random direction
+                qreal angle = QRandomGenerator::global()->bounded(360) * M_PI / 180.0;
+                m_dirX = std::cos(angle);
+                m_dirY = std::sin(angle);
+            }
+            // Reapply position
+            setX(m_x);
+            setY(m_y);
         }
         return;
     }
 
-    // Boss Move
+    // Boss move
     if (m_type == EnemyType::RaccoonBoss && m_isMoving && m_gameManager) {
         qreal speed = (m_bossPhase == 1) ? m_baseSpeed : m_baseSpeed * 1.5;
         qreal newX = m_x + m_moveDirection.x() * speed * deltaTime;
@@ -149,8 +197,7 @@ void Enemy::update(const QPointF& playerPos, qreal deltaTime)
         const qreal rightBound = 800 - m_size;
         const qreal topBound = 0;
         const qreal bottomBound = 600 - m_size;
-        const qreal edgeMargin = 50.0; // Boundary warning distance
-                                       // Turn if below this value
+        const qreal edgeMargin = 50.0; // Boundary warning distance. Turn if below this value
 
         bool adjusted = false;
 
@@ -160,7 +207,6 @@ void Enemy::update(const QPointF& playerPos, qreal deltaTime)
             m_moveDirection.setX(-m_moveDirection.x());
             adjusted = true;
         }
-        // Similarly handle Y direction
         if ((newY < topBound + edgeMargin && m_moveDirection.y() < 0) ||
             (newY > bottomBound - edgeMargin && m_moveDirection.y() > 0)) {
             m_moveDirection.setY(-m_moveDirection.y());
@@ -179,12 +225,12 @@ void Enemy::update(const QPointF& playerPos, qreal deltaTime)
         setX(newX);
         setY(newY);
 
-        // Corner anti-stuck: If speed is below threshold for an extended period (e.g., 3 seconds), force a random direction change
+        // Corner anti-stuck: If speed is below threshold for an extended period, force a random direction change
         static int stuckCounter = 0;
         qreal moveDist = std::hypot(newX - m_x, newY - m_y);
         if (moveDist < 1.0) {
             stuckCounter++;
-            if (stuckCounter > 60) { // Approximately 1 second (assuming 60fps)
+            if (stuckCounter > 60) { 
                 qreal angle = QRandomGenerator::global()->bounded(360) * M_PI / 180.0;
                 m_moveDirection = QPointF(std::cos(angle), std::sin(angle));
                 stuckCounter = 0;
@@ -194,6 +240,11 @@ void Enemy::update(const QPointF& playerPos, qreal deltaTime)
         else {
             stuckCounter = 0;
         }
+        // Set direction based on player position
+        QPointF toPlayer = playerPos - QPointF(m_x, m_y);
+        if (toPlayer.x() > 0) setFacingRight(true);
+        else if (toPlayer.x() < 0) setFacingRight(false);
+
         return;
     }
 
@@ -204,18 +255,29 @@ void Enemy::update(const QPointF& playerPos, qreal deltaTime)
         dir /= len;
         setX(m_x + dir.x() * m_speed * deltaTime);
         setY(m_y + dir.y() * m_speed * deltaTime);
+
+        // Set facing direction based on horizontal movement
+        if (dir.x() > 0) setFacingRight(true);
+        else if (dir.x() < 0) setFacingRight(false);
     }
 }
 
 void Enemy::onHit(Player* player, GameManager* gm)
 {
-    // On hit, trigger block if not already blocking and off cooldown
-    if (m_type == EnemyType::BarkShield && !m_isBlocking && !m_isBlockCooldown) {
-        startBlocking();
-        return; // Other skills are not triggered while blocking
+    // Berry Bomb: Does not trigger any skills
+    if (m_type == EnemyType::BerryBomb) {
+        return;
     }
 
-    // Dynamically create skill (ensure skill exists)
+    // Bark Shieldguard: Only handle block
+    if (m_type == EnemyType::BarkShield) {
+        if (!m_isBlocking && !m_isBlockCooldown) {
+            startBlocking();
+        }
+        return;
+    }
+
+    // Other enemies: Dynamically create skills
     if (m_skill == nullptr) {
         if (m_type == EnemyType::MossBall) {
             m_skill = new SporeMistSkill(this);
@@ -223,17 +285,63 @@ void Enemy::onHit(Player* player, GameManager* gm)
         else if (m_type == EnemyType::BranchGunner) {
             m_skill = new RootSkill(this);
         }
-        else if (m_type == EnemyType::BerryBomb) {
-            m_skill = new RootSkill(this);
-        }
-        else if (m_type == EnemyType::BarkShield) {
-            m_skill = new RootSkill(this);
-        }
     }
 
     if (m_skill && !isDead()) {
         m_skill->activate(this, player, gm);
     }
+}
+
+void Enemy::setIsSporeFogActive(bool active)
+{
+    if (m_isSporeFogActive == active) return;
+    m_isSporeFogActive = active;
+    emit sporeFogChanged();
+}
+
+void Enemy::activateSporeFog(int durationMs)
+{
+    setIsSporeFogActive(true);
+    if (m_fogTimer) {
+        m_fogTimer->stop();
+        delete m_fogTimer;
+        m_fogTimer = nullptr;
+    }
+    m_fogTimer = new QTimer(this);
+    m_fogTimer->setSingleShot(true);
+    connect(m_fogTimer, &QTimer::timeout, this, [this]() {
+        setIsSporeFogActive(false);
+        });
+    m_fogTimer->start(durationMs);
+}
+
+void Enemy::onBranchGunnerShoot()
+{
+    if (!m_gameManager || isDead()) return;
+    if (m_type != EnemyType::BranchGunner) {
+        qDebug() << "ERROR: onBranchGunnerShoot called for enemy type" << (int)m_type;
+        return;
+    }
+    QPointF playerPos(m_gameManager->playerX(), m_gameManager->playerY());
+    QPointF dir = playerPos - QPointF(m_x, m_y);
+    qreal len = std::hypot(dir.x(), dir.y());
+    if (len > 0.01) dir /= len;
+    else dir = QPointF(1, 0);
+
+    Bullet* bullet = new Bullet(m_gameManager);
+    bullet->setX(m_x);
+    bullet->setY(m_y);
+    bullet->setVelocity(dir.x(), dir.y());
+    bullet->setSpeed(300);
+    bullet->setDamage(15);
+
+    // Set angle
+    qreal angleRad = std::atan2(dir.y(), dir.x());
+    bullet->setAngle(angleRad * 180 / M_PI);   // Convert to degrees
+
+    qDebug() << "Branch bullet angle:" << bullet->angle();
+
+    m_gameManager->addBullet(bullet);
 }
 
 void Enemy::startBossLogic(GameManager* gm)
@@ -244,7 +352,7 @@ void Enemy::startBossLogic(GameManager* gm)
     m_isMoving = true;
     m_bossLogicActive = true;
 
-    // Initialize movement direction (avoid zero vector)
+    // Initialize movement direction
     if (!m_initialDirectionSet) {
         qreal angle = QRandomGenerator::global()->bounded(360) * M_PI / 180.0;
         m_moveDirection = QPointF(std::cos(angle), std::sin(angle));
@@ -322,7 +430,7 @@ void Enemy::onShootTimeout()
 {
     qDebug() << "onShootTimeout ENTER, phase:" << m_bossPhase;
     if (!m_gameManager || isDead()) return;
-
+    if (m_type != EnemyType::RaccoonBoss) return;
     QPointF playerPos(m_gameManager->playerX(), m_gameManager->playerY());
     QPointF dir = playerPos - QPointF(m_x, m_y);
     qreal len = std::hypot(dir.x(), dir.y());
@@ -377,7 +485,16 @@ void Enemy::onSummonTimeout()
         for (int i = 0; i < 2; ++i) {
             qreal offsetX = QRandomGenerator::global()->bounded(-80, 80);
             qreal offsetY = QRandomGenerator::global()->bounded(-80, 80);
-            m_gameManager->spawnEnemyAt(EnemyType::BranchGunner, m_x + offsetX, m_y + offsetY);
+            Enemy* summoned = m_gameManager->spawnEnemyAt(EnemyType::BranchGunner, m_x + offsetX, m_y + offsetY);
+            if (summoned) {
+                summoned->setIsSummonedByBoss(true);
+                // Stat Boost
+                summoned->setMaxHp(60);
+                summoned->setHp(60);
+                summoned->setDamage(25);
+                summoned->setSpeed(100);
+                summoned->setExpReward(30);
+            }
         }
     }
     else {
@@ -396,9 +513,25 @@ void Enemy::onSummonTimeout()
         for (int i = 0; i < 3; ++i) {
             qreal offsetX = QRandomGenerator::global()->bounded(-60, 60);
             qreal offsetY = QRandomGenerator::global()->bounded(-60, 60);
-            m_gameManager->spawnEnemyAt(EnemyType::BerryBomb, m_x + offsetX, m_y + offsetY);
+            Enemy* summoned = m_gameManager->spawnEnemyAt(EnemyType::BerryBomb, m_x + offsetX, m_y + offsetY);
+            if (summoned) {
+                summoned->setIsSummonedByBoss(true);
+                // Stat Boost
+                summoned->setMaxHp(40);
+                summoned->setHp(40);
+                summoned->setDamage(20);
+                summoned->setSpeed(70);
+                summoned->setExpReward(25);
+            }
         }
     }
+}
+
+void Enemy::setIsSummonedByBoss(bool value)
+{
+    if (m_isSummonedByBoss == value) return;
+    m_isSummonedByBoss = value;
+    emit summonedByBossChanged();
 }
 
 void Enemy::updateActiveSkill(qreal deltaTime, GameManager* gm)
@@ -448,35 +581,55 @@ void Enemy::explode(GameManager* gm)
 {
     if (!gm) return;
 
+    // Prevent duplicate explosion
+    static bool isExploding = false;
+    if (isExploding) return;
+    isExploding = true;
+
     // 1. Deal area damage to player
     qreal dx = gm->playerX() - m_x;
     qreal dy = gm->playerY() - m_y;
     qreal dist = std::hypot(dx, dy);
     if (dist < m_explosionRadius) {
-        // Damage increases with proximity (linear falloff, min half)
-        int damage = m_explosionDamage * (1.0 - dist / m_explosionRadius);
+        int damage = static_cast<int>(m_explosionDamage * (1.0 - dist / m_explosionRadius));
         if (damage < 1) damage = 1;
         gm->player()->takeDamage(damage);
         qDebug() << "BerryBomb explosion dealt" << damage << "damage to player";
     }
 
-    // 2. Spawn small berries (small berries disappear when killed)
+    // 2. Spawn small berries
+    qDebug() << "Generating" << m_smallBerryCount << "small berries";
     for (int i = 0; i < m_smallBerryCount; ++i) {
         Enemy* small = EnemyFactory::createEnemy(EnemyType::SmallBerry, gm);
-        // Randomly offset positions to avoid overlapping
+        if (!small) {
+            qDebug() << "Failed to create SmallBerry!";
+            continue;
+        }
+
+        small->setMaxHp(10);
+        small->setHp(10);
+        small->setSize(30);
+        small->setSpeed(150);
+        small->setDamage(5);
+        small->setExpReward(5);
+        small->setGameManager(gm);
+        // Randomly offset position
         qreal angle = QRandomGenerator::global()->bounded(360) * M_PI / 180.0;
         qreal offsetX = std::cos(angle) * 30;
         qreal offsetY = std::sin(angle) * 30;
         small->setX(m_x + offsetX);
         small->setY(m_y + offsetY);
-        // Set random movement direction for small berries (unit vector)
+
+        // Set random movement direction
         qreal dirAngle = QRandomGenerator::global()->bounded(360) * M_PI / 180.0;
         small->setDirection(std::cos(dirAngle), std::sin(dirAngle));
+
         gm->addEnemyDirect(small);
+        qDebug() << "SmallBerry added at" << small->x() << small->y() << "hp:" << small->hp();
     }
 
-    // 3. Destroy self (mark as dead, will be removed in cleanupDeadObjects)
     setHp(0);
+    isExploding = false;
 }
 
 void Enemy::startBlocking()

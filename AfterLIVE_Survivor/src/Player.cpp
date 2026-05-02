@@ -16,25 +16,25 @@ void Player::setCharacterType(CharacterType type)
     }
 
     if (type == CharacterA) {
-        m_maxHp = 100;
-        m_hp = 100;
-        m_hpRegen = 2;
-        m_armor = 0;
-        m_moveSpeed = 280;
-        m_power = 12;
-        m_area = 60;
-        m_attackSpeed = 1.5;
+        m_maxHp = 70;
+        m_hp = 70;
+        m_hpRegen = 3;
+        m_armor = 1;
+        m_moveSpeed = 300;
+        m_power = 25;
+        m_area = 70;
+        m_attackSpeed = 2.0;
         m_weapon = new Carrot(this);
     }
     else {
-        m_maxHp = 60;
-        m_hp = 60;
+        m_maxHp = 40;
+        m_hp = 40;
         m_hpRegen = 1;
-        m_armor = 5;
-        m_moveSpeed = 320;
-        m_power = 8;
-        m_area = 40;
-        m_attackSpeed = 3.0;
+        m_armor = 3;
+        m_moveSpeed = 340;
+        m_power = 15;
+        m_area = 50;
+        m_attackSpeed = 3.2;
         m_weapon = new Bone(this);
     }
 
@@ -157,13 +157,11 @@ void Player::setHasBurnEffect(bool enable)
 
 int Player::expRequiredForLevel(int level) const
 {
-    // Experience required per level = 100 * level
     return 100 * level;
 }
 
 int Player::expToNextLevel() const
 {
-    // Return total experience needed to level up from current level to next
     return expRequiredForLevel(m_level);
 }
 

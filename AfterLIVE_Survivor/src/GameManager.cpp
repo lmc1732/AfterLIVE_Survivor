@@ -108,8 +108,10 @@ QList<QObject*> GameManager::sporeMistEffects() const
 void GameManager::addEnemyDirect(Enemy* enemy)
 {
     if (!enemy) return;
+    enemy->setGameManager(this);
     m_enemies.append(enemy);
     emit enemiesChanged();
+    qDebug() << "Enemy added, type:" << (int)enemy->type() << "total:" << m_enemies.size();
     connect(enemy, &Enemy::died, this, &GameManager::onEnemyDied);
     if (enemy->type() == EnemyType::RaccoonBoss) {
         enemy->startBossLogic(this);
@@ -247,7 +249,7 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
         }
     }
 
-    // Active skill cooldown management (placed after enemy movement updates)
+    // Active Skill Cooldown Management
     for (Enemy* enemy : m_enemies) {
         if (enemy->isDead()) continue;
         static QMap<Enemy*, qreal> skillTimers;
@@ -276,7 +278,7 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
     }
     emit sporeMistEffectsChanged();
 
-    // Check if player is inside any fog (for vulnerability)
+    // Check if player is inside any fog
     bool inDamageMist = false;
     for (SporeMistEffect* mist : m_sporeMistEffects) {
         qreal dx = m_playerX - mist->x();
@@ -310,13 +312,14 @@ void GameManager::update(qreal deltaTime, qreal playerX, qreal playerY)
     }
 }
 
-void GameManager::spawnEnemyAt(EnemyType type, qreal x, qreal y)
+Enemy* GameManager::spawnEnemyAt(EnemyType type, qreal x, qreal y)
 {
     Enemy* enemy = EnemyFactory::createEnemy(type, this);
-    if (!enemy) return;
+    if (!enemy) return nullptr;
     enemy->setX(x);
     enemy->setY(y);
     addEnemyDirect(enemy);
+    return enemy;
 }
 
 void GameManager::resetGameData()
@@ -377,12 +380,22 @@ void GameManager::resetGameData()
 
 void GameManager::restartGame()
 {
-    resetGameData();  // Reuse reset logic
+    resetGameData();
     qDebug() << "Game restarted (data only, timer not started).";
 }
 
+void GameManager::setSelectedCharacter(int character)
+{
+    if (m_selectedCharacter != character) {
+        m_selectedCharacter = character;
+        emit selectedCharacterChanged();
+        qDebug() << "Selected character changed to:" << character;
+    }
+}
 void GameManager::selectCharacter(int type)
 {
+    setSelectedCharacter(type);
+
     resetGameData();  // Reset data, stop and delete old timer
 
     if (m_player) {
@@ -463,27 +476,27 @@ QList<UpgradeItem*> GameManager::generateRandomUpgrades()
     QList<UpgradeItem*> options;
     QVector<UpgradeItem*> pool;
 
-    pool.append(new StatUpgrade(StatUpgrade::MaxHp, 20, "Rice", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::MaxHp, 20, "Soft Blanket", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::HpRegen, 2, "Dubai Chocolate", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::HpRegen, 2, "Braised Spare Ribs", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::Armor, 3, "Scarf", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::Armor, 3, "Gat", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::MoveSpeed, 20, "Wings", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::MoveSpeed, 20, "Ribbon", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::Power, 5, "Megaphone", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::Power, 5, "Flame", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::Area, 15, "Windmill", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::Area, 15, "Bubble", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::AttackSpeed, 5, "Wind Chime", "qrc:/images/placeholder.png", this));
-    pool.append(new StatUpgrade(StatUpgrade::AttackSpeed, 5, "Rattle", "qrc:/images/placeholder.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::MaxHp, 9, "Rice", "qrc:/assets/images/upgrades/rice.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::MaxHp, 12, "Soft Blanket", "qrc:/assets/images/upgrades/softblanket.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::HpRegen, 1.5, "Dubai Chococlate", "qrc:/assets/images/upgrades/dubaichocolate.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::HpRegen, 2.5, "Braised Spare Ribs", "qrc:/assets/images/upgrades/braisedspareribs.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::Armor, 2, "Scarf", "qrc:/assets/images/upgrades/scarf.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::Armor, 3, "Gat", "qrc:/assets/images/upgrades/gat.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::MoveSpeed, 18, "Wings", "qrc:/assets/images/upgrades/wings.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::MoveSpeed, 25, "Ribbon", "qrc:/assets/images/upgrades/ribbon.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::Power, 5, "Megaphone", "qrc:/assets/images/upgrades/megaphone.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::Power, 8, "Flame", "qrc:/assets/images/upgrades/flame.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::Area, 12, "Wind Mill", "qrc:/assets/images/upgrades/windmill.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::Area, 18, "Bubble", "qrc:/assets/images/upgrades/bubble.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::AttackSpeed, 5, "Windchime", "qrc:/assets/images/upgrades/windchime.png", this));
+    pool.append(new StatUpgrade(StatUpgrade::AttackSpeed, 8, "Rattle", "qrc:/assets/images/upgrades/rattle.png", this));
 
-    pool.append(new SpecialUpgrade(SpecialUpgrade::BraveSword, "Hero Sword", "qrc:/images/placeholder.png", this));
-    pool.append(new SpecialUpgrade(SpecialUpgrade::Shield, "Glow Shield", "qrc:/images/placeholder.png", this));
-    pool.append(new SpecialUpgrade(SpecialUpgrade::SilenceBow, "Silence Bow", "qrc:/images/placeholder.png", this));
-    pool.append(new SpecialUpgrade(SpecialUpgrade::LoveLute, "Love Lute", "qrc:/images/placeholder.png", this));
-    pool.append(new SpecialUpgrade(SpecialUpgrade::WishBranch, "Wishing Branch", "qrc:/images/placeholder.png", this));
-    pool.append(new SpecialUpgrade(SpecialUpgrade::WarmHammer, "Warm Flame Hammer", "qrc:/images/placeholder.png", this));
+    pool.append(new SpecialUpgrade(SpecialUpgrade::BraveSword, "Hero Sword", "qrc:/assets/images/upgrades/herosword.png", this));
+    pool.append(new SpecialUpgrade(SpecialUpgrade::Shield, "Glow Shield", "qrc:/assets/images/upgrades/glowshield.png", this));
+    pool.append(new SpecialUpgrade(SpecialUpgrade::SilenceBow, "Silence Bow", "qrc:/assets/images/upgrades/silencebow.png", this));
+    pool.append(new SpecialUpgrade(SpecialUpgrade::LoveLute, "Love Lute", "qrc:/assets/images/upgrades/lovelute.png", this));
+    pool.append(new SpecialUpgrade(SpecialUpgrade::WishBranch, "Wishing Branch", "qrc:/assets/images/upgrades/wishingbranch.png", this));
+    pool.append(new SpecialUpgrade(SpecialUpgrade::WarmHammer, "Warm Flame Hammer", "qrc:/assets/images/upgrades/warmflamehammer.png", this));
 
     QList<int> indices;
     while (indices.size() < 3 && indices.size() < pool.size()) {
@@ -517,7 +530,10 @@ void GameManager::checkBulletEnemyCollision()
         for (int j = m_enemies.size() - 1; j >= 0; --j) {
             Enemy* enemy = m_enemies[j];
             if (enemy->isDead()) continue;
-
+            // Boss bullets do not collide with the Boss itself
+            if (bullet->isBossBullet() && enemy->type() == EnemyType::RaccoonBoss) {
+                continue;
+            }
             qreal enemyX = enemy->x();
             qreal enemyY = enemy->y();
             qreal enemyRadius = enemy->size() / 2.0;
@@ -527,53 +543,43 @@ void GameManager::checkBulletEnemyCollision()
             qreal dist = std::hypot(dx, dy);
 
             if (dist < bulletRadius + enemyRadius) {
-                // Bark Shield blocks and bullet is not the rebound source
-                if (enemy->type() == EnemyType::BarkShield && enemy->isBlocking() && !bullet->isRebounded()) {
-                    // Create rebound bullet
-                    Bullet* rebounded = new Bullet(this);
-                    rebounded->setX(enemyX);
-                    rebounded->setY(enemyY);
-
-                    //Basic rebound direction (opposite of incoming direction)
-                    qreal vx = -bullet->velX();
-                    qreal vy = -bullet->velY();
-
-                    //Light homing: Calculate direction from rebound point to player
-                    QPointF dirToPlayer(m_playerX - enemyX, m_playerY - enemyY);
-                    qreal len = std::hypot(dirToPlayer.x(), dirToPlayer.y());
-                    if (len > 0.01) {
-                        dirToPlayer /= len;
-                        // Mix rebound direction with homing direction (50% each)
-                        vx = (vx + dirToPlayer.x()) * 0.5;
-                        vy = (vy + dirToPlayer.y()) * 0.5;
-                        // Normalize
-                        len = std::hypot(vx, vy);
-                        if (len > 0.01) {
-                            vx /= len;
-                            vy /= len;
-                        }
+                if (enemy->type() == EnemyType::BarkShield && !bullet->isRebounded()) {
+                    // If not blocking and not on cooldown, start blocking
+                    if (!enemy->isBlocking() && !enemy->isBlockCooldown()) {
+                        enemy->startBlocking();   // Start blocking (1.5 seconds）
                     }
-
-                    //Random offset of ±10 degrees (adds unpredictability)
-                    qreal angle = std::atan2(vy, vx);
-                    angle += (QRandomGenerator::global()->bounded(20) - 10) * M_PI / 180.0;
-                    vx = std::cos(angle);
-                    vy = std::sin(angle);
-
-                    rebounded->setVelocity(vx, vy);
-                    rebounded->setSpeed(bullet->speed() * 1.5);   // Increase speed by 50%
-                    rebounded->setDamage(bullet->damage() * 1.2);        // Increase damage by 20%
-                    rebounded->setIgnoreArmor(true);
-                    rebounded->setIsRebounded(true);
-                    addBullet(rebounded);
-                    bullet->setHit();
-                    break;
+                    // Check if blocking
+                    if (enemy->isBlocking()) {
+                        //  Thorns
+                        static QMap<Enemy*, qreal> lastReflectMap;
+                        qreal lastTime = lastReflectMap.value(enemy, -1.0);
+                        if (lastTime < 0 || m_gameTime - lastTime > 0.3) { // Cooldown 0.3 seconds
+                            lastReflectMap[enemy] = m_gameTime;
+                            qDebug() << "BarkShield is blocking, applying reflect damage";
+                            int reflectDamage = 10;
+                            int newHp = m_player->hp() - reflectDamage;
+                            if (newHp < 0) newHp = 0;
+                            m_player->setHp(newHp);
+                            qDebug() << "BarkShield reflected" << reflectDamage << "damage (ignoring armor), player HP:" << newHp;
+                        }
+                        else {
+                            qDebug() << "BarkShield reflection on cooldown, ignored";
+                        }
+                        bullet->setHit();
+                        break;
+                    }
+                    else {
+                        // Bark Shieldguard takes normal damage while on cooldown
+                        int finalDamage = static_cast<int>(bullet->damage() * m_player->damageMultiplier());
+                        enemy->takeDamage(finalDamage);
+                        enemy->onHit(m_player, this);
+                        bullet->setHit();
+                        break;
+                    }
                 }
                 else {
-
                     int finalDamage = static_cast<int>(bullet->damage() * m_player->damageMultiplier());
                     enemy->takeDamage(finalDamage);
-                    // Call onHit to trigger skills
                     enemy->onHit(m_player, this);
                     bullet->setHit();
                     if (m_player->hasBurnEffect()) {
@@ -601,7 +607,7 @@ void GameManager::checkPlayerEnemyCollision()
 
     qreal playerX = m_playerX;
     qreal playerY = m_playerY;
-    qreal playerRadius = 20.0;
+    qreal playerRadius = 40.0;
 
     for (Enemy* enemy : m_enemies) {
         if (enemy->isDead()) continue;
@@ -615,7 +621,7 @@ void GameManager::checkPlayerEnemyCollision()
         qreal dist = std::hypot(dx, dy);
 
         if (dist < playerRadius + enemyRadius) {
-            // Player takes no collision damage while Bark Shield is blocking
+            // Player takes no collision damage while Bark Shieldguard is blocking
             if (enemy->type() == EnemyType::BarkShield && enemy->isBlocking()) {
                 break;
             }
@@ -669,7 +675,7 @@ void GameManager::checkPlayerExpBallCollision()
 
     qreal playerX = m_playerX;
     qreal playerY = m_playerY;
-    qreal playerRadius = 25.0;
+    qreal playerRadius = 45.0;
 
     for (int i = m_expBalls.size() - 1; i >= 0; --i) {
         ExpBall* ball = m_expBalls[i];
@@ -728,7 +734,7 @@ void GameManager::onEnemyDied(Enemy* enemy)
 {
     if (!enemy) return;
 
-    // Drop experience orb
+    // Drop experience balls
     ExpBall* ball = new ExpBall(this);
     ball->setX(enemy->x());
     ball->setY(enemy->y());
@@ -740,3 +746,4 @@ void GameManager::refreshEnemies()
 {
     emit enemiesChanged();
 }
+

@@ -5,9 +5,17 @@ import QtQuick.Controls 2.15
 Rectangle {
     id: gameMain
     anchors.fill: parent
-    color: "white"  
+    color: "transparent"  
 
-    signal backToCharacterSelect  // signal
+// Background image
+    Image {
+        anchors.fill: parent
+        source: "qrc:/assets/images/ui/game_bg.png"  
+        fillMode: Image.PreserveAspectCrop  
+        z: -1   // Place at the bottom layer
+    }
+
+    signal backToCharacterSelect  
 
 // Reset overlay and player state when the UI is shown
     onVisibleChanged: {
@@ -58,7 +66,7 @@ Rectangle {
         }
     }
     }
-    // ========== Timer at the top center of the screen ==========
+    // ========== Top-Center Timer ==========
     Text {
         id: timerText
         anchors.top: parent.top
@@ -78,111 +86,144 @@ Rectangle {
         }
     }
 
-    // ========== Displays player attributes on the left side ==========
-    Column {
-        id: statsColumn
-        anchors.left: parent.left
-        anchors.leftMargin: 10
-        anchors.top: parent.top
-        anchors.topMargin: 10
-        spacing: 5
+    // ========== Left-Side Stats Display ==========
+Column {
+    id: statsColumn
+    anchors.left: parent.left
+    anchors.leftMargin: 10
+    anchors.top: parent.top
+    anchors.topMargin: 10
+    spacing: 5
 
-        Text {
-            text: "❤️ Max Health: " + (gameManager ? gameManager.player.maxHp : 0)
-            color: "#ff6b6b"
-            font.pixelSize: 13
-            font.bold: true
-        }
+    Text {
+    text: "❤️ Max Health: " + (gameManager ? gameManager.player.maxHp : 0)
+    color: "#ff6b6b"
+    font.pixelSize: 13
+    font.bold: false          
+    style: Text.Outline
+    styleColor: "#80000000"   // Semi-transparent black
+}
 
-        Text {
-            text: "💚 Recovery: +" + (gameManager ? gameManager.player.hpRegen : 0) + "/s"
-            color: "#51cf66"
-            font.pixelSize: 13
-        }
+    Text {
+        text: "💚 Recovery: +" + (gameManager ? gameManager.player.hpRegen : 0) + "/s"
+        color: "#51cf66"
+        font.pixelSize: 13
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: "🛡️ Armor: " + (gameManager ? gameManager.player.armor : 0)
-            color: "#74c0fc"
-            font.pixelSize: 13
-        }
+    Text {
+        text: "🛡️ Armor: " + (gameManager ? gameManager.player.armor : 0)
+        color: "#74c0fc"
+        font.pixelSize: 13
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: "👟 Move Speed: " + (gameManager ? gameManager.player.moveSpeed : 0)
-            color: "#ffd43b"
-            font.pixelSize: 13
-        }
+    Text {
+        text: "👟 Move Speed: " + (gameManager ? gameManager.player.moveSpeed : 0)
+        color: "#ffd43b"
+        font.pixelSize: 13
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: "⚔️ Might: " + (gameManager ? gameManager.player.power : 0)
-            color: "#ff8787"
-            font.pixelSize: 13
-        }
+    Text {
+        text: "⚔️ Might: " + (gameManager ? gameManager.player.power : 0)
+        color: "#ff8787"
+        font.pixelSize: 13
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: "📐 Area: " + (gameManager ? gameManager.player.area : 0)
-            color: "#a5d8ff"
-            font.pixelSize: 13
-        }
+    Text {
+        text: "📐 Area: " + (gameManager ? gameManager.player.area : 0)
+        color: "#a5d8ff"
+        font.pixelSize: 13
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: "⚡ Attack Speed: " + (gameManager ? gameManager.player.attackSpeed.toFixed(1) : 0)
-            color: "#94d82d"
-            font.pixelSize: 13
-        }
+    Text {
+        text: "⚡ Attack Speed: " + (gameManager ? gameManager.player.attackSpeed.toFixed(1) : 0)
+        color: "#F57C00"  
+        font.pixelSize: 13
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Rectangle {
-            width: 140
-            height: 1
-            color: "gray"
-            opacity: 0.5
-        }
+    Rectangle {
+        width: 140
+        height: 1
+        color: "gray"
+        opacity: 0.5
+    }
 
-        Text {
-            text: {
-                if (!gameManager) return "✨ Growth: -"
-                var bonus = (gameManager.player.expMultiplier - 1) * 100
-                return bonus > 0 ? "✨ Growth: +" + bonus.toFixed(0) + "%" : "✨ Growth: -"
-            }
-            color: "#ffd43b"
-            font.pixelSize: 12
+    Text {
+        text: {
+            if (!gameManager) return "✨ Growth: -"
+            var bonus = (gameManager.player.expMultiplier - 1) * 100
+            return bonus > 0 ? "✨ Growth: +" + bonus.toFixed(0) + "%" : "✨ Growth: -"
         }
+        color: "#ffd43b"
+        font.pixelSize: 12
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: {
-                if (!gameManager) return "💢 Might Bonus: -"
-                var bonus = (gameManager.player.damageMultiplier - 1) * 100
-                return bonus > 0 ? "💢 Might Bonus: +" + bonus.toFixed(0) + "%" : "💢 Might Bonus: -"
-            }
-            color: "#ff8787"
-            font.pixelSize: 12
+    Text {
+        text: {
+            if (!gameManager) return "💢 Might Bonus: -"
+            var bonus = (gameManager.player.damageMultiplier - 1) * 100
+            return bonus > 0 ? "💢 Might Bonus: +" + bonus.toFixed(0) + "%" : "💢 Might Bonus: -"
         }
+        color: "#ff8787"
+        font.pixelSize: 12
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 
-        Text {
-            text: {
-                var effects = []
-                if (gameManager && gameManager.player.hasSlowEffect) effects.push("🏹 Slow")
-                if (gameManager && gameManager.player.hasHealOnKill) effects.push("💖 Heal on Kill")
-                if (gameManager && gameManager.player.hasBurnEffect) effects.push("🔥 Burn")
-                return effects.length > 0 ? effects.join("  ") : ""
-            }
-            color: "#c5f6fa"
-            font.pixelSize: 11
+    Text {
+        text: {
+            var effects = []
+            if (gameManager && gameManager.player.hasSlowEffect) effects.push("🏹 Slow")
+            if (gameManager && gameManager.player.hasHealOnKill) effects.push("💖 Heal on Kill")
+            if (gameManager && gameManager.player.hasBurnEffect) effects.push("🔥 Burn")
+            return effects.length > 0 ? effects.join("  ") : ""
         }
-        Text {
-            text: "✨ Status: " + (gameManager ? gameManager.player.activeEffects.join(", ") : "")
-            color: "#ffd43b"
-            font.pixelSize: 11
-            wrapMode: Text.NoWrap
-            width: 200
-        }
+        color: "#c5f6fa"
+        font.pixelSize: 11
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
+
+    Text {
+        text: "✨ Status: " + (gameManager ? gameManager.player.activeEffects.join(", ") : "")
+        color: "#ffd43b"
+        font.pixelSize: 11
+        wrapMode: Text.NoWrap
+        width: 200
+        font.bold: false
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
 }
         
 
     
 
-    // ========== Health Bar and Experience Bar on the right side ==========
+    // ========== Right-Side Health Bar and Experience Bar ==========
 Column {
-    id: rightStatsColumn   // Add an ID for locating the pause button
+    id: rightStatsColumn   
     anchors.right: parent.right
     anchors.rightMargin: 10
     anchors.top: parent.top
@@ -246,8 +287,6 @@ Column {
     }
 }
 
-
-// Add an attribute to the GameMain root element
 property bool gamePaused: false
 
 // Pause Button
@@ -294,8 +333,8 @@ Rectangle {
 
         // Resume
         Rectangle {
-            width: 200; height: 50; color: "#4caf50"; radius: 10
-            Text { text: "Resume"; color: "white"; font.pixelSize: 20; anchors.centerIn: parent }
+            width: 200; height: 50; color: "#F5EDE0"; radius: 10; border.color: "#E0B87A"; border.width: 2
+            Text { text: "RESUME"; color: "#5A4A3A"; font.pixelSize: 20; font.bold: true; anchors.centerIn: parent }
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
@@ -306,10 +345,10 @@ Rectangle {
             }
         }
 
-        // Return Main Menu
+        // Main Menu
         Rectangle {
-            width: 200; height: 50; color: "#2196f3"; radius: 10
-            Text { text: "Main Menu"; color: "white"; font.pixelSize: 20; anchors.centerIn: parent }
+            width: 200; height: 50; color: "#F5EDE0"; radius: 10; border.color: "#E0B87A"; border.width: 2
+            Text { text: "MAIN MENU"; color: "#5A4A3A"; font.pixelSize: 20; font.bold: true; anchors.centerIn: parent }
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
@@ -323,8 +362,8 @@ Rectangle {
 
         // Quit
         Rectangle {
-            width: 200; height: 50; color: "#f44336"; radius: 10
-            Text { text: "Quit"; color: "white"; font.pixelSize: 20; anchors.centerIn: parent }
+            width: 200; height: 50; color: "#F5EDE0"; radius: 10; border.color: "#D4A373"; border.width: 2
+            Text { text: "QUIT"; color: "#5A4A3A"; font.pixelSize: 20; font.bold: true; anchors.centerIn: parent }
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
@@ -334,198 +373,186 @@ Rectangle {
         }
     }
 }
-    // Player
-    Rectangle {
-        id: player
-        width: 40
-        height: 40
-        color: "red"
-        radius: 20
-        x: root.width/2 - width/2
-        y: root.height/2 - height/2
 
-        property int speed: gameManager ? gameManager.player.moveSpeed : 280
-        property bool upPressed: false
-        property bool downPressed: false
-        property bool leftPressed: false
-        property bool rightPressed: false
+   Rectangle {
+    id: player
+    width: 80                  
+    height: 80                 
+    radius: 40                 
+    color: "transparent"       
 
-        function updateMovement(deltaTime) {
-            if (gameManager && (gameManager.isGameOver || gameManager.isGamePaused)) return
+    // Original movement logic attributes
+    property int speed: gameManager ? gameManager.player.moveSpeed : 280
+    property bool upPressed: false
+    property bool downPressed: false
+    property bool leftPressed: false
+    property bool rightPressed: false
 
-            var dx = 0, dy = 0
-            if (upPressed) dy -= 1
-            if (downPressed) dy += 1
-            if (leftPressed) dx -= 1
-            if (rightPressed) dx += 1
-            if (dx !== 0 || dy !== 0) {
-                var len = Math.hypot(dx, dy)
-                dx /= len
-                dy /= len
-                player.x += dx * speed * deltaTime
-                player.y += dy * speed * deltaTime
-                player.x = Math.max(0, Math.min(root.width - player.width, player.x))
-                player.y = Math.max(0, Math.min(root.height - player.height, player.y))
-            }
-        }
+    // Logical coordinates (used for movement calculation)
+    property real logicX: root.width/2 - width/2
+    property real logicY: root.height/2 - height/2
 
-        function clampPosition() {
+    // Movement function
+    function updateMovement(deltaTime) {
+        if (gameManager && (gameManager.isGameOver || gameManager.isGamePaused)) return
+
+        var dx = 0, dy = 0
+        if (upPressed) dy -= 1
+        if (downPressed) dy += 1
+        if (leftPressed) dx -= 1
+        if (rightPressed) dx += 1
+        if (dx !== 0 || dy !== 0) {
+            var len = Math.hypot(dx, dy)
+            dx /= len
+            dy /= len
+            player.x += dx * speed * deltaTime
+            player.y += dy * speed * deltaTime
             player.x = Math.max(0, Math.min(root.width - player.width, player.x))
             player.y = Math.max(0, Math.min(root.height - player.height, player.y))
         }
-
-        function resetKeys() {
-            upPressed = false
-            downPressed = false
-            leftPressed = false
-            rightPressed = false
-        }
     }
 
-    // Enemies (color varies by type)
-    Repeater {
-        model: gameManager ? gameManager.enemies : []
-        Rectangle {
-            width: modelData.size
-            height: modelData.size
-            color: {
-                // Bark Shield turns gold when blocking
-                if (modelData.type === 3 && modelData.isBlocking === true) return "#FFD700";
-                switch(modelData.type) {
-                    case 0: return "#8B4513";  // MossBall Brown
-                    case 1: return "#2E8B57";  // BranchGunner Green
-                    case 2: return "#8B008B";  // BerryBomb Violet
-                    case 3: return "#A0522D";  // BarkShield Tan
-                    case 4: return "#FF4500";  // RaccoonBoss Orange
-                    default: return "purple";
-                }
+    function clampPosition() {
+        player.x = Math.max(0, Math.min(root.width - player.width, player.x))
+        player.y = Math.max(0, Math.min(root.height - player.height, player.y))
+    }
+
+    function resetKeys() {
+        upPressed = false
+        downPressed = false
+        leftPressed = false
+        rightPressed = false
+    }
+
+    Component.onCompleted: {
+        player.x = root.width/2 - width/2
+        player.y = root.height/2 - height/2
+    }
+
+    // Visual sprite (as child element, automatically follows circle movement)
+    Image {
+        id: playerImage
+     
+        width: 90
+        height: 90
+        anchors.centerIn: parent
+        source: {
+            var character = gameManager ? gameManager.selectedCharacter : 0
+            var basePath = "qrc:/assets/images/player/"
+            if (character === 0) {
+                return (player.leftPressed && !player.rightPressed) ? basePath + "CHERRY_left.png" : basePath + "CHERRY_right.png"
+            } else {
+                return (player.leftPressed && !player.rightPressed) ? basePath + "GANGANJI_left.png" : basePath + "GANGANJI_right.png"
             }
-            radius: 15
-            x: modelData.x - width/2
-            y: modelData.y - height/2     
         }
-        
-    }
-
-   // Normal Bullet (yellow circle)
-Repeater {
-    model: {
-        if (!gameManager) return []
-        var list = []
-        for (var i = 0; i < gameManager.bullets.length; i++) {
-            var bullet = gameManager.bullets[i]
-            if (!bullet.isRootProjectile) list.push(bullet)
-        }
-        return list
-    }
-    delegate: Rectangle {
-        width: 8
-        height: 8
-        color: "yellow"
-        radius: 4
-        x: modelData.x - width/2
-        y: modelData.y - height/2
+        fillMode: Image.PreserveAspectFit
+        smooth: true
     }
 }
 
-// Stun Bullet
-Repeater {
-    model: {
-        if (!gameManager) return []
-        var list = []
-        for (var i = 0; i < gameManager.bullets.length; i++) {
-            var bullet = gameManager.bullets[i]
-            if (bullet.isRootProjectile) list.push(bullet)
-        }
-        return list
-    }
+ Repeater {
+    model: gameManager ? gameManager.enemies : []
     delegate: Item {
-        id: bulletRoot
-        x: modelData.x - width/2
-        y: modelData.y - height/2
-        width: 130
-        height: 16   // Max Height (Tail)
-
-        property real angle: Math.atan2(modelData.velY, modelData.velX) * 180 / Math.PI
-        rotation: angle
-
-        // Tail
-        Rectangle {
-            width: 50
-            height: 16
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#0A2463" }
-                GradientStop { position: 1.0; color: "#1E88E5" }
+        property real displaySize: {
+            switch(modelData.type) {
+                case 0: return 60;   // Moss Ball
+                case 1: return 70;   // Branch Gunner
+                case 2: return 60;   // Berry Bomb
+                case 3: return 70;   // Bark Shield
+                case 4: return 100;  // Racoon Boss
+                case 5: return 40;   // Small Berry
+                default: return 60;
             }
-            opacity: 0.85
-            radius: 4
-            anchors.left: parent.left
-            anchors.leftMargin: 0
         }
-
-        // Head (narrow, tapering to a point)
-        Rectangle {
-            width: 80
-            height: 6
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#1E88E5" }
-                GradientStop { position: 0.6; color: "#4FC3F7" }
-                GradientStop { position: 1.0; color: "#E0F7FA" }
+        x: modelData.x - displaySize/2
+        y: modelData.y - displaySize/2
+        width: displaySize
+        height: displaySize
+        Component.onCompleted: console.log("Enemy type:", modelData.type, "facingRight:", modelData.facingRight)
+        Image {
+            anchors.fill: parent
+            source: {
+                var type = modelData.type
+                var facingRight = modelData.facingRight
+                var basePath = "qrc:/assets/images/enemies/"
+                if (type === 0) return facingRight ? basePath + "moss_ball_right.png" : basePath + "moss_ball_left.png"
+                else if (type === 1) return facingRight ? basePath + "branch_gunner_right.png" : basePath + "branch_gunner_left.png"
+                else if (type === 2) return facingRight ? basePath + "berry_bomb_right.png" : basePath + "berry_bomb_left.png"
+                else if (type === 3) {
+                    // Bark Shield: Switch image based on blocking status
+                    if (modelData.isBlocking)
+                        return facingRight ? basePath + "bark_shield_glow_right.png" : basePath + "bark_shield_glow_left.png"
+                    else
+                        return facingRight ? basePath + "bark_shield_right.png" : basePath + "bark_shield_left.png"
+                }
+                else if (type === 4) return facingRight ? basePath + "raccoon_boss_right.png" : basePath + "raccoon_boss_left.png"
+                else if (type === 5) return facingRight ? basePath + "small_berry_right.png" : basePath + "small_berry_left.png"
+                return ""
             }
-            opacity: 0.9
-            radius: 3
-            anchors.left: parent.left
-            anchors.leftMargin: 45   // Overlap with tail by 5 pixels for smooth transition
-            anchors.verticalCenter: parent.verticalCenter
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            sourceSize.width: 128
+            sourceSize.height: 128
         }
-
-        // Center bright band (runs from head to tail)
-        Rectangle {
-            width: parent.width - 10
-            height: 2
-            color: "#CCF5FF"
-            opacity: 0.8
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        // Tip Glow
-        Rectangle {
-            width: 12
-            height: 12
-            color: "white"
-            radius: 6
-            anchors.right: parent.right
-            anchors.rightMargin: -4
-            anchors.verticalCenter: parent.verticalCenter
-            opacity: 0.9
-            layer.enabled: true
-            layer.effect: Qt.linalg.blur
-        }
-
-        // Tail fade (transparent gradient)
-        Rectangle {
-            width: 40
-            height: 20
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#FFFFFF" }
-                GradientStop { position: 1.0; color: "#00000000" }
-            }
-            anchors.left: parent.left
-            anchors.leftMargin: -5
-            opacity: 0.5
-        }
-
-        // Overall breathing animation
-        SequentialAnimation on scale {
-            loops: Animation.Infinite
-            NumberAnimation { from: 1.0; to: 1.03; duration: 300; easing.type: Easing.InOutQuad }
-            NumberAnimation { from: 1.03; to: 1.0; duration: 300; easing.type: Easing.InOutQuad }
-        }
+       
     }
 }
 
-// Boss Bullet (red circle with glow)
+   // Player Bullet
+Repeater {
+    model: {
+        if (!gameManager) return []
+        var list = []
+        for (var i = 0; i < gameManager.bullets.length; i++) {
+            var bullet = gameManager.bullets[i]
+            if (!bullet.isRootProjectile && bullet.isPlayerBullet && !bullet.isRebounded) list.push(bullet)
+        }
+        return list
+    }
+    delegate: Image {
+        width: (gameManager.selectedCharacter === 0) ? 32 : 48
+        height: (gameManager.selectedCharacter === 0) ? 32 : 48
+        x: modelData.x - width/2
+        y: modelData.y - height/2
+        source: {
+            if (gameManager.selectedCharacter === 0)
+                return "qrc:/assets/images/bullets/carrot.png"
+            else
+                return "qrc:/assets/images/bullets/bone.png"
+        }
+        rotation: modelData.angle
+        transformOrigin: Item.Center
+        smooth: true
+        sourceSize.width: 128
+        sourceSize.height: 128
+    }
+}
+
+Repeater {
+    model: {
+        if (!gameManager) return []
+        var list = []
+        for (var i = 0; i < gameManager.bullets.length; i++) {
+            var bullet = gameManager.bullets[i]
+            if (!bullet.isPlayerBullet && !bullet.isRebounded && !bullet.isBossBullet) list.push(bullet)
+        }
+        return list
+    }
+    delegate: Image {
+        width: 56
+        height: 56
+        x: modelData.x - width/2
+        y: modelData.y - height/2
+        source: "qrc:/assets/images/bullets/branch_bullet.png"
+        rotation: Math.atan2(modelData.velY, modelData.velX) * 180 / Math.PI
+        transformOrigin: Item.Center
+        smooth: true
+        sourceSize.width: 128
+        sourceSize.height: 128
+    }
+}
+
+// Boss Bullet (Acorn, tip faces movement direction)
 Repeater {
     model: {
         if (!gameManager) return []
@@ -536,35 +563,19 @@ Repeater {
         }
         return list
     }
-    delegate: Item {
+    delegate: Image {
+        width: 32
+        height: 32
         x: modelData.x - width/2
         y: modelData.y - height/2
-        width: 16
-        height: 16
-
-        Rectangle {
-            width: parent.width
-            height: parent.height
-            color: "#FF3300"
-            radius: 8
-            border.color: "#FFAA00"
-            border.width: 1
-        }
-        // Glow
-        Rectangle {
-            width: parent.width + 8
-            height: parent.height + 8
-            color: "transparent"
-            border.color: "#FF6600"
-            border.width: 2
-            radius: 10
-            opacity: 0.6
-            anchors.centerIn: parent
-        }
+        source: "qrc:/assets/images/bullets/acorn_bullet.png"
+        rotation: Math.atan2(modelData.velY, modelData.velX) * 180 / Math.PI
+        transformOrigin: Item.Center
+        smooth: true
+        sourceSize.width: 128
+        sourceSize.height: 128
     }
-}
-
-// Explosion
+}// Explosion 
     Repeater {
         model: gameManager ? gameManager.explosions : []
         Repeater {
@@ -603,14 +614,20 @@ Repeater {
 
     Repeater {
     model: gameManager ? gameManager.sporeMistEffects : []
-    Rectangle {
+    Image {
         width: modelData.radius * 2
         height: modelData.radius * 2
-        color: "#aaffaa"
-        opacity: 0.4
-        radius: modelData.radius
         x: modelData.x - width/2
         y: modelData.y - height/2
+        source: "qrc:/assets/images/effects/spore_fog.png"
+        fillMode: Image.PreserveAspectFit
+        opacity: 0.6
+        NumberAnimation on rotation {
+            loops: Animation.Infinite
+            from: 0
+            to: 360
+            duration: 8000
+        }
     }
 }
 
@@ -646,45 +663,42 @@ Repeater {
                 Repeater {
                     model: upgradeModel
                     Rectangle {
-                        width: 200
+                        width: 220
                         height: 250
-                        color: "#2c3e50"
+                        color: "#DCD3C6"
                         radius: 15
-                        border.color: "gold"
-                        border.width: 2
+                        border.color:  "#E6B87A"
+                        border.width: 4
 
+                       
                         Column {
                             anchors.centerIn: parent
                             spacing: 10
                             width: parent.width - 20
 
-                            Rectangle {
-                                width: 80
-                                height: 80
-                                color: "gray"
-                                radius: 10
-                                anchors.horizontalCenter: parent.horizontalCenter
-
-                                Text {
-                                    text: "Image"
-                                    color: "white"
-                                    anchors.centerIn: parent
-                                    font.pixelSize: 12
-                                }
+                            Image {
+                               source: model.icon
+                               width: 96
+                               height: 96
+                               fillMode: Image.PreserveAspectFit
+                               anchors.horizontalCenter: parent.horizontalCenter
+                               smooth: true
+                               sourceSize.width: 256
+                               sourceSize.height: 256
                             }
 
                             Text {
                                 text: model.name
-                                color: "white"
-                                font.pixelSize: 18
+                                color: "#5A5045"
+                                font.pixelSize: 20
                                 font.bold: true
                                 anchors.horizontalCenter: parent.horizontalCenter
                             }
 
                             Text {
                                 text: model.description
-                                color: "#cccccc"
-                                font.pixelSize: 14
+                                color:  "#8A7F72" 
+                                font.pixelSize: 15
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 wrapMode: Text.WordWrap
                                 horizontalAlignment: Text.AlignHCenter
@@ -734,150 +748,94 @@ Repeater {
     
 
         // Game Over Overlay
-    Rectangle {
-        id: gameOverOverlay
+Rectangle {
+    id: gameOverOverlay
+    anchors.fill: parent
+    visible: false
+    z: 300   
+    
+    Image {
         anchors.fill: parent
-        color: "black"
-        opacity: 0.7
-        visible: false
-        z: 100
+        source: "qrc:/assets/images/ui/gameover.png"
+        fillMode: Image.Stretch      
+        smooth: true
+        sourceSize.width: 800
+        sourceSize.height: 600
+    }
 
-        Column {
-            anchors.centerIn: parent
-            spacing: 20
+    // Transparent button area
+    Item {
+        anchors.fill: parent
 
-            Text {
-                text: "GAME OVER"
-                color: "red"
-                font.pixelSize: 48
-                font.bold: true
-                anchors.horizontalCenter: parent.horizontalCenter
+        // Restart (Return to Main Menu) Button
+        MouseArea {
+            x: 180
+            y: 520
+            width: 140
+            height: 30
+            onClicked: {
+                gameMain.backToCharacterSelect()
             }
+        }
 
-            Text {
-                text: "Level: Lv." + (gameManager ? gameManager.player.level : 1)
-                color: "white"
-                font.pixelSize: 24
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Text {
-                text: {
-                    if (!gameManager) return "Survival Time: 0:00"
-                    var totalSeconds = Math.floor(gameManager.gameTime)
-                    var minutes = Math.floor(totalSeconds / 60)
-                    var seconds = totalSeconds % 60
-                    return "Survival Time: " + minutes + ":" + (seconds < 10 ? "0" + seconds : seconds)
-                }
-                color: "white"
-                font.pixelSize: 20
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Rectangle {
-                width: 200
-                height: 50
-                color: "#4caf50"
-                radius: 10
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                Text {
-                    text: "Restart"
-                    color: "white"
-                    font.pixelSize: 20
-                    anchors.centerIn: parent
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        gameMain.backToCharacterSelect()
-                    }
-                }
-            }
-
-            Rectangle {
-                width: 200
-                height: 50
-                color: "#f44336"
-                radius: 10
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                Text {
-                    text: "Quit"
-                    color: "white"
-                    font.pixelSize: 20
-                    anchors.centerIn: parent
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        Qt.quit()
-                    }
-                }
+        // Quit Button
+        MouseArea {
+            x: 483
+            y: 517
+            width: 140
+            height: 30
+            onClicked: {
+                Qt.quit()
             }
         }
     }
+
+    onVisibleChanged: {
+        if (pauseButtonItem) pauseButtonItem.visible = !visible
+    }
+}
 
     // Victory Overlay
-    Rectangle {
-        id: victoryOverlay
+Rectangle {
+    id: victoryOverlay
+    anchors.fill: parent
+    visible: false
+    z: 300
+
+    onVisibleChanged: {
+        pauseButtonItem.visible = !visible
+    }
+
+    Image {
         anchors.fill: parent
-        color: "black"
-        opacity: 0.7
-        visible: false
-        z: 100
+        source: "qrc:/assets/images/ui/victory.png"  
+        fillMode: Image.PreserveAspectCrop
+    }
 
-        Column {
-            anchors.centerIn: parent
-            spacing: 20
-
-            Text {
-                text: "VICTORY!"
-                color: "gold"
-                font.pixelSize: 48
-                font.bold: true
-                anchors.horizontalCenter: parent.horizontalCenter
+    Item {
+        anchors.fill: parent
+        // Return to Main Menu Button
+        MouseArea {
+            x: 187
+            y: 503
+            width: 160
+            height: 50
+            onClicked: {
+                gameMain.backToCharacterSelect()
             }
-
-            Text {
-                text: "You defeated the boss!"
-                color: "white"
-                font.pixelSize: 24
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Text {
-                text: "Survival Time: " + (gameManager ? Math.floor(gameManager.gameTime) : 0) + " seconds"
-                color: "white"
-                font.pixelSize: 18
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Rectangle {
-                width: 200
-                height: 50
-                color: "#4caf50"
-                radius: 10
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                Text {
-                    text: "Restart"
-                    color: "white"
-                    font.pixelSize: 20
-                    anchors.centerIn: parent
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        gameMain.backToCharacterSelect()
-                    }
-                }
+        }
+        // Quit Button
+        MouseArea {
+            x: 530
+            y: 505
+            width: 140
+            height: 50
+            onClicked: {
+                Qt.quit()
             }
         }
     }
+}
 
     Connections {
         target: gameManager

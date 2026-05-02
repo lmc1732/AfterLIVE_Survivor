@@ -11,12 +11,13 @@
 #include "UpgradeItem.h"
 #include "EnemyType.h"
 
-class SporeMistEffect;  // Forward declaration
+class SporeMistEffect;
 
 class GameManager : public QObject
 {
     Q_OBJECT
         Q_PROPERTY(Player* player READ player NOTIFY playerChanged)
+        Q_PROPERTY(int selectedCharacter READ selectedCharacter WRITE setSelectedCharacter NOTIFY selectedCharacterChanged)
         Q_PROPERTY(QList<QObject*> enemies READ enemies NOTIFY enemiesChanged)
         Q_PROPERTY(QList<QObject*> bullets READ bullets NOTIFY bulletsChanged)
         Q_PROPERTY(QList<QObject*> explosions READ explosions NOTIFY explosionsChanged)
@@ -54,13 +55,17 @@ public:
     void addEnemyDirect(Enemy* enemy);
     qreal playerX() const { return m_playerX; }
     qreal playerY() const { return m_playerY; }
-    void spawnEnemyAt(EnemyType type, qreal x, qreal y);
+    Enemy* spawnEnemyAt(EnemyType type, qreal x, qreal y);
 
     void resetGameData();
     void setIsGamePaused(bool paused);
     void levelUp();
 
+    int selectedCharacter() const { return m_selectedCharacter; }
+    void setSelectedCharacter(int character);
+
 signals:
+    void selectedCharacterChanged();
     void enemiesChanged();
     void bulletsChanged();
     void explosionsChanged();
@@ -79,6 +84,8 @@ private slots:
     void onEnemyDied(Enemy* enemy);
 
 private:
+    int m_selectedCharacter = 0;  // 0 means CHERRY£¬1 means GANGANJI
+
     void checkCollisions();
     void cleanupDeadObjects();
     void checkBulletEnemyCollision();

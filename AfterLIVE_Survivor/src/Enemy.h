@@ -17,6 +17,9 @@ class Enemy : public QObject
         Q_PROPERTY(EnemyType type READ type NOTIFY typeChanged)
         Q_PROPERTY(qreal size READ size CONSTANT)
         Q_PROPERTY(bool isBlocking READ isBlocking NOTIFY isBlockingChanged)
+        Q_PROPERTY(bool facingRight READ facingRight WRITE setFacingRight NOTIFY facingRightChanged)
+        Q_PROPERTY(bool isSporeFogActive READ isSporeFogActive WRITE setIsSporeFogActive NOTIFY sporeFogChanged)
+        Q_PROPERTY(bool isSummonedByBoss READ isSummonedByBoss WRITE setIsSummonedByBoss NOTIFY summonedByBossChanged)
 
 public:
     explicit Enemy(QObject* parent = nullptr);
@@ -41,9 +44,15 @@ public:
     qreal size() const { return m_size; }
     void setSize(qreal size);
 
+    bool facingRight() const { return m_facingRight; }
+    void setFacingRight(bool right);
+
     void takeDamage(int damage);
     void update(const QPointF& playerPos, qreal deltaTime);
     bool isDead() const { return m_hp <= 0; }
+
+    bool isSummonedByBoss() const { return m_isSummonedByBoss; }
+    void setIsSummonedByBoss(bool value);
 
     // Skill System
     Skill* getSkill() const { return m_skill; }
@@ -52,7 +61,7 @@ public:
     void updateActiveSkill(qreal deltaTime, GameManager* gm);
     void explode(GameManager* gm);
     void setDirection(qreal dx, qreal dy) { m_dirX = dx; m_dirY = dy; }
-
+    void setGameManager(GameManager* gm) { m_gameManager = gm; }
     bool isBlocking() const { return m_isBlocking; }
     void startBlocking();
     void stopBlocking();
@@ -69,16 +78,24 @@ public:
     void applyBurn(int damagePerSecond, qreal duration);
     void applySlow(qreal factor, qreal duration);
 
+    bool isSporeFogActive() const { return m_isSporeFogActive; }
+    void setIsSporeFogActive(bool active);
+    void activateSporeFog(int durationMs = 2000);
+
 signals:
     void xChanged();
     void yChanged();
     void hpChanged();
     void maxHpChanged();
     void typeChanged();
+    void facingRightChanged();
     void died(Enemy* enemy);
     void isBlockingChanged();
+    void sporeFogChanged();
+    void summonedByBossChanged();
 
 private slots:
+    void onBranchGunnerShoot();
     void onMoveTimeout();
     void onShootTimeout();
     void onSummonTimeout();
@@ -91,17 +108,20 @@ private:
     qreal m_speed = 100;
     int m_damage = 10;
     int m_expReward = 10;
+    bool m_facingRight = true;
     EnemyType m_type = EnemyType::MossBall;
     qreal m_size = 30.0;
     Skill* m_skill = nullptr;
     qreal m_skillTimer = 0;
     qreal m_skillCooldown = 3.0;
-    qreal m_explosionRadius = 60.0;         // Explosion Radius
-    int m_explosionDamage = 15;             // Explosion Damage
-    int m_smallBerryCount = 3;              // Split Count
+    qreal m_explosionRadius = 60.0;         
+    int m_explosionDamage = 15;             
+    int m_smallBerryCount = 3;              
     qreal m_dirX = 1.0, m_dirY = 0.0;
 
     // Status Effects
+    bool m_isSporeFogActive = false;
+    QTimer* m_fogTimer = nullptr;
     qreal m_speedMultiplier = 1.0;
     qreal m_slowTimer = 0.0;
     int m_burnDamagePerSecond = 0;
@@ -111,6 +131,7 @@ private:
     bool m_isBlockCooldown = false;
     QTimer* m_blockTimer = nullptr;
     QTimer* m_cooldownTimer = nullptr;
+    QTimer* m_branchShootTimer = nullptr;
 
     // Boss Related
     int m_bossPhase = 1;
@@ -125,4 +146,5 @@ private:
     bool m_bossLogicActive = false;   // Control whether recursion continues
     bool m_initialDirectionSet = false;  // Ensure direction is initialized only once
     int m_stuckCounter = 0;
+    bool m_isSummonedByBoss = false;
 };

@@ -32,11 +32,26 @@ void Bullet::setVelocity(qreal vx, qreal vy)
     m_velY = vy;
 }
 
+void Bullet::setIsPlayerBullet(bool value)
+{
+    if (m_isPlayerBullet == value)
+        return;                     // Value unchanged, do not emit signal
+    m_isPlayerBullet = value;
+    emit isPlayerBulletChanged();   // Emit signal
+}
+
+void Bullet::setAngle(qreal angle)
+{
+    if (qFuzzyCompare(m_angle, angle))
+        return;
+    m_angle = angle;
+    emit angleChanged();
+}
+
 void Bullet::setSpeed(qreal speed)
 {
     m_speed = speed;
 }
-
 void Bullet::update(qreal deltaTime)
 {
     if (m_hasHit) return;

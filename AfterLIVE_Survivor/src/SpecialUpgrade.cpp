@@ -15,7 +15,7 @@ QString SpecialUpgrade::description() const
 {
     switch (m_type) {
     case BraveSword:   return "Hero Sword: +20% might";
-    case Shield:       return "Glow Shield: +10 Armor";
+    case Shield:       return "Glow Shield: +6 Armor";
     case SilenceBow:   return "Silence Bow: Attacks slow enemies by 30% for 2 seconds";
     case LoveLute:     return "Love Lute: Heal 5 HP on enemy kill";
     case WishBranch:   return "Wishing Branch: +50% Growth";
@@ -37,7 +37,7 @@ void SpecialUpgrade::apply(Player* player)
         player->setDamageMultiplier(player->damageMultiplier() + 0.2);
         break;
     case Shield:
-        player->setArmor(player->armor() + 10);
+        player->setArmor(player->armor() + 6);
         break;
     case SilenceBow:
         player->setHasSlowEffect(true);

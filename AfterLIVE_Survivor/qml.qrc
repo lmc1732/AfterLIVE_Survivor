@@ -1,11 +1,62 @@
 <RCC>
     <qresource prefix="/qt/qml/afterlive_survivor"/>
-    <qresource prefix="/assets"/>
     <qresource prefix="/">
-        <file>qml/main.qml</file>
-        <file>qml/Player.qml</file>
         <file>qml/CharacterSelect.qml</file>
         <file>qml/GameMain.qml</file>
+        <file>qml/main.qml</file>
         <file>qml/MainMenu.qml</file>
+        <file>qml/Player.qml</file>
+        <file>assets/images/bullets/acorn_bullet.png</file>
+        <file>assets/images/bullets/bone.png</file>
+        <file>assets/images/bullets/branch_bullet.png</file>
+        <file>assets/images/bullets/carrot.png</file>
+        <file>assets/images/characters/CHERRY.png</file>
+        <file>assets/images/characters/GANGANJI.png</file>
+        <file>assets/images/decorations/cherry.png</file>
+        <file>assets/images/decorations/shine_muscat.png</file>
+        <file>assets/images/effects/spore_fog.png</file>
+        <file>assets/images/enemies/bark_shield_glow_left.png</file>
+        <file>assets/images/enemies/bark_shield_glow_right.png</file>
+        <file>assets/images/enemies/bark_shield_left.png</file>
+        <file>assets/images/enemies/bark_shield_right.png</file>
+        <file>assets/images/enemies/berry_bomb_left.png</file>
+        <file>assets/images/enemies/berry_bomb_right.png</file>
+        <file>assets/images/enemies/branch_gunner_left.png</file>
+        <file>assets/images/enemies/branch_gunner_right.png</file>
+        <file>assets/images/enemies/moss_ball_left.png</file>
+        <file>assets/images/enemies/raccoon_boss_left.png</file>
+        <file>assets/images/enemies/moss_ball_right.png</file>
+        <file>assets/images/enemies/raccoon_boss_right.png</file>
+        <file>assets/images/enemies/small_berry_left.png</file>
+        <file>assets/images/enemies/small_berry_right.png</file>
+        <file>assets/images/player/CHERRY_left.png</file>
+        <file>assets/images/player/CHERRY_right.png</file>
+        <file>assets/images/player/GANGANJI_left.png</file>
+        <file>assets/images/player/GANGANJI_right.png</file>
+        <file>assets/images/ui/character_select_bg.png</file>
+        <file>assets/images/ui/game_bg.png</file>
+        <file>assets/images/ui/gameover.png</file>
+        <file>assets/images/ui/main_menu_bg.jpg</file>
+        <file>assets/images/ui/victory.png</file>
+        <file>assets/images/upgrades/braisedspareribs.png</file>
+        <file>assets/images/upgrades/bubble.png</file>
+        <file>assets/images/upgrades/dubaichocolate.png</file>
+        <file>assets/images/upgrades/flame.png</file>
+        <file>assets/images/upgrades/gat.png</file>
+        <file>assets/images/upgrades/glowshield.png</file>
+        <file>assets/images/upgrades/herosword.png</file>
+        <file>assets/images/upgrades/lovelute.png</file>
+        <file>assets/images/upgrades/megaphone.png</file>
+        <file>assets/images/upgrades/rattle.png</file>
+        <file>assets/images/upgrades/ribbon.png</file>
+        <file>assets/images/upgrades/rice.png</file>
+        <file>assets/images/upgrades/scarf.png</file>
+        <file>assets/images/upgrades/silencebow.png</file>
+        <file>assets/images/upgrades/softblanket.png</file>
+        <file>assets/images/upgrades/warmflamehammer.png</file>
+        <file>assets/images/upgrades/windchime.png</file>
+        <file>assets/images/upgrades/windmill.png</file>
+        <file>assets/images/upgrades/wings.png</file>
+        <file>assets/images/upgrades/wishingbranch.png</file>
     </qresource>
 </RCC>

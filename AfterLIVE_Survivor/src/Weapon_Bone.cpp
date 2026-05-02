@@ -5,8 +5,8 @@
 
 Bone::Bone(QObject* parent) : Weapon(parent)
 {
-    setDamage(45);        // µ¥¿Å×Óµ¯»ù´¡ÉËº¦´ó·ùÌáÉýµ½ 45
-    setAttackSpeed(2.5);  // ¹¥ËÙÂÔÎ¢½µµÍµ½ 2.5£¬Æ½ºâµ¥·¢¸ßÉËº¦
+    setDamage(45);        
+    setAttackSpeed(2.5);  
 }
 
 void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
@@ -16,7 +16,6 @@ void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
     bullet->setX(playerPos.x());
     bullet->setY(playerPos.y());
 
-    // ¼ÆËã·½Ïò
     qreal dx = targetPos.x() - playerPos.x();
     qreal dy = targetPos.y() - playerPos.y();
     qreal len = std::hypot(dx, dy);
@@ -28,14 +27,13 @@ void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
         dx = 0; dy = 1;
     }
     bullet->setVelocity(dx, dy);
-    bullet->setSpeed(500);           // ×Óµ¯ËÙ¶ÈÌáÉýµ½ 500
+    bullet->setSpeed(500);
     bullet->setDamage(damage());
 
-    // ±¬Õ¨°ë¾¶Ôö´óµ½ 120£¬±¬Õ¨ÉËº¦ÌáÉýµ½ 45
-    bullet->setExplosionRadius(120);
-    bullet->setExplosionDamage(45);
+    bullet->setExplosionRadius(80);
+    bullet->setExplosionDamage(35);
 
-    // ´«µÝ GameManager Ö¸Õë
+    // ä¼ é€’ GameManager æŒ‡é’ˆ
     QObject* gm = this;
     while (gm && !qobject_cast<GameManager*>(gm)) {
         gm = gm->parent();
@@ -43,6 +41,10 @@ void Bone::createBullet(const QPointF& playerPos, const QPointF& targetPos,
     if (gm) {
         bullet->setGameManager(gm);
     }
+
+    bullet->setIsPlayerBullet(true);
+    qreal angleRad = std::atan2(dy, dx);
+    bullet->setAngle(angleRad * 180 / M_PI);
 
     bullets.append(bullet);
 }
