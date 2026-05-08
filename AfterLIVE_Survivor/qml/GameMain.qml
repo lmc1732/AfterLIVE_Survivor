@@ -22,8 +22,8 @@ Rectangle {
         if (visible) {
             gameOverOverlay.visible = false
             victoryOverlay.visible = false
-            upgradeDialog.visible = false
-            upgradeModel.clear()
+            upgradeDialog.visible = false  
+            upgradeModel.clear()  
             player.x = parent.width/2 - player.width/2
             player.y = parent.height/2 - player.height/2
             player.resetKeys()
@@ -37,7 +37,7 @@ Rectangle {
     Timer {
         id: gameLoop
         interval: 16
-        running: gameMain.visible
+        running: gameMain.visible  
         repeat: true
         property real lastTimestamp: 0
         onTriggered: {
@@ -60,7 +60,7 @@ Rectangle {
     Timer {
     id: refreshTimer
     interval: 100   // Refresh every 100 milliseconds
-    running: gameMain.visible
+    running: gameMain.visible  
     repeat: true
     onTriggered: {
         if (gameManager) {
